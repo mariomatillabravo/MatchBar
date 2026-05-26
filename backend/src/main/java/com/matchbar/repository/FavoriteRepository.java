@@ -1,0 +1,11 @@
+package com.matchbar.repository;
+
+import com.matchbar.entity.Favorite;
+import org.springframework.data.jpa.repository.JpaRepository;
+import java.util.List;
+
+public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
+    List<Favorite> findByUserId(Long userId);
+    boolean existsByUserIdAndBarId(Long userId, Long barId);
+    void deleteByUserIdAndBarId(Long userId, Long barId);
+}

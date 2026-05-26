@@ -1,0 +1,39 @@
+# Java
+target/
+*.class
+*.jar
+*.war
+hs_err_pid*
+
+# Maven
+.mvn/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Android
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+android/*.iml
+android/captures/
+*.apk
+*.aab
+*.keystore
+
+# Logs
+*.log
+
+# Env
+.env

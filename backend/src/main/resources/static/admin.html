@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>MatchBar — Panel de Administración</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --card: #ffffff;
+    --primary: #1f3864;
+    --primary-light: #2e74b5;
+    --success: #2ecc71;
+    --danger: #e74c3c;
+    --warning: #f39c12;
+    --text: #2c3e50;
+    --muted: #7f8c8d;
+    --border: #e1e4e8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+         background: var(--bg); color: var(--text); line-height: 1.5; }
+  header { background: var(--primary); color: white; padding: 1rem 2rem;
+           display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 1.25rem; font-weight: 600; }
+  header .user-info { display: flex; gap: 1rem; align-items: center; font-size: 0.9rem; }
+  button { cursor: pointer; border: none; padding: 0.5rem 1rem; border-radius: 4px;
+           font-size: 0.9rem; transition: opacity 0.2s; }
+  button:hover { opacity: 0.85; }
+  .btn-primary { background: var(--primary-light); color: white; }
+  .btn-success { background: var(--success); color: white; }
+  .btn-danger { background: var(--danger); color: white; }
+  .btn-link { background: transparent; color: white; text-decoration: underline; }
+
+  main { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+
+  /* Login */
+  .login-box { max-width: 400px; margin: 5rem auto; background: var(--card);
+               padding: 2rem; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .login-box h2 { margin-bottom: 1.5rem; color: var(--primary); }
+  .login-box input { width: 100%; padding: 0.75rem; margin-bottom: 1rem;
+                     border: 1px solid var(--border); border-radius: 4px; font-size: 1rem; }
+  .login-box button { width: 100%; padding: 0.75rem; }
+  .error { color: var(--danger); margin-top: 0.5rem; font-size: 0.9rem; }
+
+  /* Dashboard cards */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+           gap: 1rem; margin-bottom: 2rem; }
+  .stat-card { background: var(--card); padding: 1.5rem; border-radius: 8px;
+               box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  .stat-card .label { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; }
+  .stat-card .value { font-size: 2rem; font-weight: 700; color: var(--primary); margin-top: 0.5rem; }
+
+  /* Table */
+  .card { background: var(--card); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+          overflow: hidden; }
+  .card-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--border);
+                 display: flex; justify-content: space-between; align-items: center; }
+  .card-header h3 { color: var(--primary); }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 0.85rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th { background: #f8f9fa; font-weight: 600; font-size: 0.85rem;
+       text-transform: uppercase; color: var(--muted); }
+  tr:last-child td { border-bottom: none; }
+
+  .badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 12px;
+           font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
+  .badge-pending { background: #fff3cd; color: #856404; }
+  .badge-approved { background: #d4edda; color: #155724; }
+  .badge-rejected { background: #f8d7da; color: #721c24; }
+
+  .actions { display: flex; gap: 0.5rem; }
+  .actions button { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+
+  .hidden { display: none !important; }
+  .empty { padding: 3rem; text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-view">
+  <div class="login-box">
+    <h2>MatchBar — Admin</h2>
+    <input type="email" id="email" placeholder="Email" value="admin@matchbar.com">
+    <input type="password" id="password" placeholder="Contraseña" value="password123">
+    <button class="btn-primary" onclick="login()">Iniciar sesión</button>
+    <p id="login-error" class="error"></p>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div id="dashboard-view" class="hidden">
+  <header>
+    <h1>MatchBar — Panel de Administración</h1>
+    <div class="user-info">
+      <span id="user-name"></span>
+      <button class="btn-link" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <main>
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Bares pendientes</div>
+        <div class="value" id="stat-pending">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Bares aprobados</div>
+        <div class="value" id="stat-approved">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Bares rechazados</div>
+        <div class="value" id="stat-rejected">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Bares pendientes de validación</h3>
+        <button class="btn-primary" onclick="loadPending()">Recargar</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Nombre</th><th>Dirección</th><th>Estado</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="pending-tbody">
+          <tr><td colspan="5" class="empty">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<script>
+const API = window.location.origin;
+let token = localStorage.getItem('matchbar_admin_token');
+
+if (token) showDashboard();
+
+async function login() {
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.textContent = '';
+  try {
+    const res = await fetch(`${API}/api/auth/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password})
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data.message || 'Credenciales inválidas');
+    }
+    const data = await res.json();
+    if (data.role !== 'ADMIN') throw new Error('Solo administradores pueden acceder');
+    token = data.token;
+    localStorage.setItem('matchbar_admin_token', token);
+    localStorage.setItem('matchbar_admin_name', data.name);
+    showDashboard();
+  } catch (e) {
+    errEl.textContent = e.message;
+  }
+}
+
+function logout() {
+  localStorage.removeItem('matchbar_admin_token');
+  localStorage.removeItem('matchbar_admin_name');
+  token = null;
+  document.getElementById('login-view').classList.remove('hidden');
+  document.getElementById('dashboard-view').classList.add('hidden');
+}
+
+function showDashboard() {
+  document.getElementById('login-view').classList.add('hidden');
+  document.getElementById('dashboard-view').classList.remove('hidden');
+  document.getElementById('user-name').textContent =
+    localStorage.getItem('matchbar_admin_name') || 'Admin';
+  loadPending();
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(`${API}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      ...(options.headers || {})
+    }
+  });
+  if (res.status === 401) { logout(); throw new Error('Sesión expirada'); }
+  if (!res.ok) throw new Error(`Error ${res.status}`);
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+async function loadPending() {
+  try {
+    const bars = await api('/api/admin/bars/pending');
+    const tbody = document.getElementById('pending-tbody');
+
+    // Stats: contamos pending desde aquí, los otros con peticiones extra si hiciera falta
+    document.getElementById('stat-pending').textContent = bars.length;
+
+    if (bars.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No hay bares pendientes 🎉</td></tr>';
+      return;
+    }
+    tbody.innerHTML = bars.map(b => `
+      <tr>
+        <td>${b.id}</td>
+        <td><strong>${escapeHtml(b.name)}</strong></td>
+        <td>${escapeHtml(b.address)}</td>
+        <td><span class="badge badge-pending">Pendiente</span></td>
+        <td class="actions">
+          <button class="btn-success" onclick="approve(${b.id})">Aprobar</button>
+          <button class="btn-danger"  onclick="reject(${b.id})">Rechazar</button>
+        </td>
+      </tr>`).join('');
+
+    // Para los aprobados/rechazados haríamos endpoints adicionales; placeholder por ahora:
+    document.getElementById('stat-approved').textContent = '—';
+    document.getElementById('stat-rejected').textContent = '—';
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+async function approve(id) {
+  await api(`/api/admin/bars/${id}/approve`, {method: 'PATCH'});
+  loadPending();
+}
+
+async function reject(id) {
+  await api(`/api/admin/bars/${id}/reject`, {method: 'PATCH'});
+  loadPending();
+}
+
+function escapeHtml(s) {
+  if (!s) return '';
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+</script>
+</body>
+</html>

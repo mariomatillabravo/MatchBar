@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MatchBar</string>
+    <!-- Pega aquí tu Google Maps API key. Si la dejas vacía la app compila pero el mapa no carga. -->
+    <string name="google_maps_api_key" translatable="false"></string>
+</resources>
