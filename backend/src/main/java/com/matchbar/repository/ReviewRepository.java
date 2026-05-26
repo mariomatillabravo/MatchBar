@@ -1,10 +1,10 @@
 package com.matchbar.repository;
 
 import com.matchbar.entity.Review;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
-public interface ReviewRepository extends JpaRepository<Review, Long> {
-    List<Review> findByBarIdOrderByCreatedAtDesc(Long barId);
-    boolean existsByUserIdAndBarId(Long userId, Long barId);
+public interface ReviewRepository extends MongoRepository<Review, String> {
+    List<Review> findByBarIdOrderByCreatedAtDesc(String barId);
+    boolean existsByUserIdAndBarId(String userId, String barId);
 }

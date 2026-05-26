@@ -1,34 +1,28 @@
 version: '3.8'
 
 services:
-  db:
-    image: mysql:8.0
-    container_name: matchbar-db
+  mongo:
+    image: mongo:7.0
+    container_name: matchbar-mongo
     restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: matchbar
-      MYSQL_USER: matchbar
-      MYSQL_PASSWORD: matchbar
     ports:
-      - "3306:3306"
+      - "27017:27017"
     volumes:
-      - matchbar-db-data:/var/lib/mysql
+      - matchbar-mongo-data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: matchbar
 
   api:
     build: ./backend
     container_name: matchbar-api
     restart: unless-stopped
     depends_on:
-      - db
+      - mongo
     environment:
-      SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:mysql://db:3306/matchbar?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-      DB_USER: matchbar
-      DB_PASS: matchbar
+      MONGODB_URI: mongodb://mongo:27017/matchbar
       JWT_SECRET: cambia-esta-clave-en-produccion-debe-ser-larga-min-256-bits-1234567890
     ports:
       - "8080:8080"
 
 volumes:
-  matchbar-db-data:
+  matchbar-mongo-data:

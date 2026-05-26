@@ -1,55 +1,47 @@
 package com.matchbar.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
+import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.math.BigDecimal;
 import java.time.Instant;
 
-@Entity
-@Table(name = "bars")
+@Document(collection = "bars")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Bar {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false, unique = true)
-    private User user;
+    private String userId;
 
-    @Column(nullable = false, length = 120)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
     private String address;
 
-    @Column(nullable = false, precision = 9, scale = 6)
     private BigDecimal latitude;
 
-    @Column(nullable = false, precision = 9, scale = 6)
     private BigDecimal longitude;
 
-    @Column(name = "license_doc")
+    @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
+    private GeoJsonPoint location;
+
     private String licenseDoc;
 
-    @Column(name = "photo_url")
     private String photoUrl;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Status status;
+    @Builder.Default
+    private Status status = Status.PENDING;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreatedDate
     private Instant createdAt;
-
-    @PrePersist
-    void onCreate() {
-        if (createdAt == null) createdAt = Instant.now();
-        if (status == null) status = Status.PENDING;
-    }
 
     public enum Status { PENDING, APPROVED, REJECTED }
 }

@@ -1,11 +1,11 @@
 package com.matchbar.repository;
 
 import com.matchbar.entity.Favorite;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import java.util.List;
 
-public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
-    List<Favorite> findByUserId(Long userId);
-    boolean existsByUserIdAndBarId(Long userId, Long barId);
-    void deleteByUserIdAndBarId(Long userId, Long barId);
+public interface FavoriteRepository extends MongoRepository<Favorite, String> {
+    List<Favorite> findByUserId(String userId);
+    boolean existsByUserIdAndBarId(String userId, String barId);
+    void deleteByUserIdAndBarId(String userId, String barId);
 }

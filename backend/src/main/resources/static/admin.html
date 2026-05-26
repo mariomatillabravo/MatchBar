@@ -30,7 +30,30 @@
   .btn-primary { background: var(--primary-light); color: white; }
   .btn-success { background: var(--success); color: white; }
   .btn-danger { background: var(--danger); color: white; }
+  .btn-warning { background: var(--warning); color: white; }
   .btn-link { background: transparent; color: white; text-decoration: underline; }
+
+  /* Tabs */
+  .tabs-bar {
+    background: var(--primary);
+    padding: 0 2rem;
+    display: flex;
+    gap: 0;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+  .tab-btn {
+    background: transparent;
+    color: rgba(255,255,255,0.7);
+    border: none;
+    border-radius: 0;
+    padding: 0.75rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-bottom: 3px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .tab-btn:hover { color: white; opacity: 1; }
+  .tab-btn.active { color: white; border-bottom-color: #5b9bd5; }
 
   main { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
 
@@ -62,18 +85,28 @@
   th { background: #f8f9fa; font-weight: 600; font-size: 0.85rem;
        text-transform: uppercase; color: var(--muted); }
   tr:last-child td { border-bottom: none; }
+  td.msg-cell { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .badge { display: inline-block; padding: 0.25rem 0.6rem; border-radius: 12px;
            font-size: 0.75rem; font-weight: 600; text-transform: uppercase; }
-  .badge-pending { background: #fff3cd; color: #856404; }
+  .badge-pending  { background: #fff3cd; color: #856404; }
   .badge-approved { background: #d4edda; color: #155724; }
   .badge-rejected { background: #f8d7da; color: #721c24; }
+  .badge-open     { background: #fff3cd; color: #856404; }
+  .badge-resolved { background: #d4edda; color: #155724; }
+  .badge-user     { background: #e7f3ff; color: #0c5460; }
+  .badge-bar      { background: #f3e7ff; color: #3d1a78; }
 
   .actions { display: flex; gap: 0.5rem; }
   .actions button { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
 
   .hidden { display: none !important; }
   .empty { padding: 3rem; text-align: center; color: var(--muted); }
+
+  /* Filter row for incidents */
+  .filter-row { display: flex; gap: 0.5rem; align-items: center; }
+  .filter-row select { padding: 0.45rem 0.75rem; border: 1px solid var(--border);
+                       border-radius: 4px; font-size: 0.9rem; }
 </style>
 </head>
 <body>
@@ -99,7 +132,22 @@
     </div>
   </header>
 
-  <main>
+  <!-- Tab navigation -->
+  <nav class="tabs-bar">
+    <button class="tab-btn active" id="tab-bars-btn" onclick="switchTab('bars')">
+      Solicitudes de bares pendientes
+    </button>
+    <button class="tab-btn" id="tab-incidents-btn" onclick="switchTab('incidents')">
+      Incidencias
+      <span id="incidents-badge" class="hidden" style="
+        display:inline-block; background:#e74c3c; color:white;
+        border-radius:10px; font-size:0.7rem; padding:0 6px; margin-left:6px; vertical-align:middle;">
+      </span>
+    </button>
+  </nav>
+
+  <!-- Tab: Bares pendientes -->
+  <main id="tab-bars">
     <div class="stats">
       <div class="stat-card">
         <div class="label">Bares pendientes</div>
@@ -132,11 +180,54 @@
       </table>
     </div>
   </main>
+
+  <!-- Tab: Incidencias -->
+  <main id="tab-incidents" class="hidden">
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Total incidencias</div>
+        <div class="value" id="stat-inc-total">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Abiertas</div>
+        <div class="value" id="stat-inc-open" style="color:var(--warning)">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Resueltas</div>
+        <div class="value" id="stat-inc-resolved" style="color:var(--success)">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3>Incidencias recibidas</h3>
+        <div class="filter-row">
+          <select id="inc-filter" onchange="renderIncidents()">
+            <option value="ALL">Todas</option>
+            <option value="OPEN">Abiertas</option>
+            <option value="RESOLVED">Resueltas</option>
+          </select>
+          <button class="btn-primary" onclick="loadIncidents()">Recargar</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Remitente</th><th>Tipo</th><th>Asunto</th><th>Mensaje</th><th>Estado</th><th>Fecha</th><th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="incidents-tbody">
+          <tr><td colspan="8" class="empty">Cargando…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
 </div>
 
 <script>
 const API = window.location.origin;
 let token = localStorage.getItem('matchbar_admin_token');
+let allIncidents = [];
 
 if (token) showDashboard();
 
@@ -180,6 +271,15 @@ function showDashboard() {
   document.getElementById('user-name').textContent =
     localStorage.getItem('matchbar_admin_name') || 'Admin';
   loadPending();
+  loadIncidents();
+}
+
+function switchTab(tab) {
+  const isBars = tab === 'bars';
+  document.getElementById('tab-bars').classList.toggle('hidden', !isBars);
+  document.getElementById('tab-incidents').classList.toggle('hidden', isBars);
+  document.getElementById('tab-bars-btn').classList.toggle('active', isBars);
+  document.getElementById('tab-incidents-btn').classList.toggle('active', !isBars);
 }
 
 async function api(path, options = {}) {
@@ -197,33 +297,34 @@ async function api(path, options = {}) {
   return res.json();
 }
 
+/* ── Bares pendientes ───────────────────────────────────── */
+
 async function loadPending() {
   try {
-    const bars = await api('/api/admin/bars/pending');
+    const [bars, stats] = await Promise.all([
+      api('/api/admin/bars/pending'),
+      api('/api/admin/bars/stats')
+    ]);
     const tbody = document.getElementById('pending-tbody');
-
-    // Stats: contamos pending desde aquí, los otros con peticiones extra si hiciera falta
-    document.getElementById('stat-pending').textContent = bars.length;
+    document.getElementById('stat-pending').textContent  = stats.pending;
+    document.getElementById('stat-approved').textContent = stats.approved;
+    document.getElementById('stat-rejected').textContent = stats.rejected;
 
     if (bars.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No hay bares pendientes 🎉</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="empty">No hay bares pendientes</td></tr>';
       return;
     }
     tbody.innerHTML = bars.map(b => `
       <tr>
-        <td>${b.id}</td>
+        <td style="font-size:0.75rem;color:var(--muted)">${b.id}</td>
         <td><strong>${escapeHtml(b.name)}</strong></td>
         <td>${escapeHtml(b.address)}</td>
         <td><span class="badge badge-pending">Pendiente</span></td>
         <td class="actions">
-          <button class="btn-success" onclick="approve(${b.id})">Aprobar</button>
-          <button class="btn-danger"  onclick="reject(${b.id})">Rechazar</button>
+          <button class="btn-success" onclick="approve('${b.id}')">Aprobar</button>
+          <button class="btn-danger"  onclick="reject('${b.id}')">Rechazar</button>
         </td>
       </tr>`).join('');
-
-    // Para los aprobados/rechazados haríamos endpoints adicionales; placeholder por ahora:
-    document.getElementById('stat-approved').textContent = '—';
-    document.getElementById('stat-rejected').textContent = '—';
   } catch (e) {
     console.error(e);
   }
@@ -238,6 +339,87 @@ async function reject(id) {
   await api(`/api/admin/bars/${id}/reject`, {method: 'PATCH'});
   loadPending();
 }
+
+/* ── Incidencias ─────────────────────────────────────────── */
+
+async function loadIncidents() {
+  try {
+    allIncidents = await api('/api/admin/incidents');
+    updateIncidentStats();
+    renderIncidents();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+function updateIncidentStats() {
+  const open = allIncidents.filter(i => i.status === 'OPEN').length;
+  const resolved = allIncidents.filter(i => i.status === 'RESOLVED').length;
+  document.getElementById('stat-inc-total').textContent = allIncidents.length;
+  document.getElementById('stat-inc-open').textContent = open;
+  document.getElementById('stat-inc-resolved').textContent = resolved;
+
+  // Badge en la pestaña
+  const badge = document.getElementById('incidents-badge');
+  if (open > 0) {
+    badge.textContent = open;
+    badge.classList.remove('hidden');
+    badge.style.display = 'inline-block';
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function renderIncidents() {
+  const filter = document.getElementById('inc-filter').value;
+  const list = filter === 'ALL' ? allIncidents
+             : allIncidents.filter(i => i.status === filter);
+
+  const tbody = document.getElementById('incidents-tbody');
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay incidencias</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(i => {
+    const typeLabel = i.senderType === 'BAR' ? 'Bar' : 'Usuario';
+    const typeCss   = i.senderType === 'BAR' ? 'badge-bar' : 'badge-user';
+    const statusCss = i.status === 'OPEN' ? 'badge-open' : 'badge-resolved';
+    const statusLabel = i.status === 'OPEN' ? 'Abierta' : 'Resuelta';
+    const date = new Date(i.createdAt).toLocaleDateString('es-ES', {
+      day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+    });
+    const resolveBtn = i.status === 'OPEN'
+      ? `<button class="btn-warning" onclick="resolveIncident(${i.id})">Resolver</button>`
+      : '<span style="color:var(--muted);font-size:0.8rem">Resuelta</span>';
+    return `
+      <tr>
+        <td>${i.id}</td>
+        <td><strong>${escapeHtml(i.senderName)}</strong><br>
+            <span style="color:var(--muted);font-size:0.8rem">${escapeHtml(i.senderEmail)}</span></td>
+        <td><span class="badge ${typeCss}">${typeLabel}</span></td>
+        <td>${escapeHtml(i.subject)}</td>
+        <td class="msg-cell" title="${escapeHtml(i.message)}">${escapeHtml(i.message)}</td>
+        <td><span class="badge ${statusCss}">${statusLabel}</span></td>
+        <td style="white-space:nowrap;font-size:0.85rem">${date}</td>
+        <td class="actions">${resolveBtn}</td>
+      </tr>`;
+  }).join('');
+}
+
+async function resolveIncident(id) {
+  try {
+    const updated = await api(`/api/admin/incidents/${id}/resolve`, {method: 'PATCH'});
+    const idx = allIncidents.findIndex(i => i.id === id);
+    if (idx !== -1) allIncidents[idx] = updated;
+    updateIncidentStats();
+    renderIncidents();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+/* ── Utilidades ──────────────────────────────────────────── */
 
 function escapeHtml(s) {
   if (!s) return '';

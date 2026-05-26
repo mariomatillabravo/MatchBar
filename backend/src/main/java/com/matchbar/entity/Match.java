@@ -1,29 +1,27 @@
 package com.matchbar.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.Instant;
 
-@Entity
-@Table(name = "matches")
+@Document(collection = "matches")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Match {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "competition_id", nullable = false)
+    @DBRef
     private Competition competition;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "home_team_id", nullable = false)
+    @DBRef
     private Team homeTeam;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "away_team_id", nullable = false)
+    @DBRef
     private Team awayTeam;
 
-    @Column(name = "kickoff_at", nullable = false)
     private Instant kickoffAt;
 }

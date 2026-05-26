@@ -1,11 +1,9 @@
 spring:
-  profiles:
-    active: dev
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/matchbar}
   jpa:
     open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
 
 server:
   port: 8080
@@ -20,42 +18,3 @@ matchbar:
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-  datasource:
-    url: jdbc:h2:mem:matchbar;DB_CLOSE_DELAY=-1;MODE=MySQL
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
-  jpa:
-    hibernate:
-      ddl-auto: create-drop
-    show-sql: true
-    defer-datasource-initialization: true
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-  sql:
-    init:
-      mode: always
-      data-locations: classpath:data-dev.sql
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-  datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/matchbar?useSSL=false&serverTimezone=UTC}
-    username: ${DB_USER:matchbar}
-    password: ${DB_PASS:matchbar}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: false

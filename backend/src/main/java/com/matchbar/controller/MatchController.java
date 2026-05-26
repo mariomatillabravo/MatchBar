@@ -24,20 +24,19 @@ public class MatchController {
     public ResponseEntity<List<MatchResponse>> search(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) Instant to,
-            @RequestParam(required = false) Long competitionId,
-            @RequestParam(required = false) Long teamId) {
+            @RequestParam(required = false) String competitionId,
+            @RequestParam(required = false) String teamId) {
         return ResponseEntity.ok(matchService.search(from, to, competitionId, teamId));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<MatchResponse> get(@PathVariable Long id) {
+    public ResponseEntity<MatchResponse> get(@PathVariable String id) {
         return ResponseEntity.ok(matchService.getById(id));
     }
 
-    /** El bar autenticado programa un partido a retransmitir. */
     @PostMapping("/{id}/schedule")
     @PreAuthorize("hasRole('BAR')")
-    public ResponseEntity<Void> schedule(@PathVariable Long id,
+    public ResponseEntity<Void> schedule(@PathVariable String id,
                                          @AuthenticationPrincipal UserPrincipal me) {
         matchService.scheduleBroadcast(me.getId(), id);
         return ResponseEntity.noContent().build();
@@ -45,13 +44,12 @@ public class MatchController {
 
     @DeleteMapping("/{id}/schedule")
     @PreAuthorize("hasRole('BAR')")
-    public ResponseEntity<Void> cancel(@PathVariable Long id,
+    public ResponseEntity<Void> cancel(@PathVariable String id,
                                        @AuthenticationPrincipal UserPrincipal me) {
         matchService.cancelBroadcast(me.getId(), id);
         return ResponseEntity.noContent().build();
     }
 
-    /** Lista de partidos programados por el bar autenticado. */
     @GetMapping("/scheduled")
     @PreAuthorize("hasRole('BAR')")
     public ResponseEntity<List<MatchResponse>> scheduled(@AuthenticationPrincipal UserPrincipal me) {

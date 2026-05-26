@@ -3,29 +3,36 @@ package com.matchbar.entity;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
 
-@Document(collection = "users")
+@Document(collection = "incidents")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
-public class User {
+public class Incident {
 
     @Id
     private String id;
 
-    @Indexed(unique = true)
-    private String email;
+    private String userId;
 
-    private String password;
+    private String senderName;
 
-    private String name;
+    private String senderEmail;
 
-    private Role role;
+    private User.Role senderType;
+
+    private String subject;
+
+    private String message;
+
+    @Builder.Default
+    private Status status = Status.OPEN;
 
     @CreatedDate
     private Instant createdAt;
 
-    public enum Role { USER, BAR, ADMIN }
+    private Instant resolvedAt;
+
+    public enum Status { OPEN, RESOLVED }
 }

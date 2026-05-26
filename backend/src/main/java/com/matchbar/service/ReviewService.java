@@ -2,7 +2,6 @@ package com.matchbar.service;
 
 import com.matchbar.dto.request.ReviewRequest;
 import com.matchbar.dto.response.ReviewResponse;
-import com.matchbar.entity.Bar;
 import com.matchbar.entity.Review;
 import com.matchbar.entity.User;
 import com.matchbar.exception.ApiException;
@@ -12,7 +11,6 @@ import com.matchbar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -25,19 +23,19 @@ public class ReviewService {
     private final BarRepository barRepository;
     private final UserRepository userRepository;
 
-    @Transactional
-    public ReviewResponse addReview(Long userId, Long barId, ReviewRequest req) {
+    public ReviewResponse addReview(String userId, String barId, ReviewRequest req) {
         if (reviewRepository.existsByUserIdAndBarId(userId, barId)) {
             throw new ApiException(HttpStatus.CONFLICT, "Ya has valorado este bar");
         }
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        Bar bar = barRepository.findById(barId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
-
+        if (!barRepository.existsById(barId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado");
+        }
         Review review = Review.builder()
-                .user(user)
-                .bar(bar)
+                .userId(userId)
+                .userName(user.getName())
+                .barId(barId)
                 .ratingAtmosphere(req.ratingAtmosphere())
                 .ratingFood(req.ratingFood())
                 .ratingPrice(req.ratingPrice())
@@ -46,8 +44,7 @@ public class ReviewService {
         return ReviewResponse.from(reviewRepository.save(review));
     }
 
-    @Transactional(readOnly = true)
-    public List<ReviewResponse> listByBar(Long barId) {
+    public List<ReviewResponse> listByBar(String barId) {
         return reviewRepository.findByBarIdOrderByCreatedAtDesc(barId).stream()
                 .map(ReviewResponse::from)
                 .collect(Collectors.toList());

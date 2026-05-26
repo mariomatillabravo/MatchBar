@@ -1,6 +1,6 @@
 package com.matchbar.repository;
 
 import com.matchbar.entity.Competition;
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
-public interface CompetitionRepository extends JpaRepository<Competition, Long> {}
+public interface CompetitionRepository extends MongoRepository<Competition, String> {}

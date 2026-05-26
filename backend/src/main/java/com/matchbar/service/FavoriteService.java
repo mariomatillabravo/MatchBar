@@ -1,9 +1,7 @@
 package com.matchbar.service;
 
 import com.matchbar.dto.response.BarResponse;
-import com.matchbar.entity.Bar;
 import com.matchbar.entity.Favorite;
-import com.matchbar.entity.User;
 import com.matchbar.exception.ApiException;
 import com.matchbar.repository.BarRepository;
 import com.matchbar.repository.FavoriteRepository;
@@ -11,7 +9,6 @@ import com.matchbar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,25 +21,24 @@ public class FavoriteService {
     private final UserRepository userRepository;
     private final BarRepository barRepository;
 
-    @Transactional
-    public void add(Long userId, Long barId) {
+    public void add(String userId, String barId) {
         if (favoriteRepository.existsByUserIdAndBarId(userId, barId)) return;
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        Bar bar = barRepository.findById(barId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
-        favoriteRepository.save(Favorite.builder().user(user).bar(bar).build());
+        if (!userRepository.existsById(userId)) throw new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        if (!barRepository.existsById(barId)) throw new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado");
+        favoriteRepository.save(Favorite.builder().userId(userId).barId(barId).build());
     }
 
-    @Transactional
-    public void remove(Long userId, Long barId) {
+    public void remove(String userId, String barId) {
         favoriteRepository.deleteByUserIdAndBarId(userId, barId);
     }
 
-    @Transactional(readOnly = true)
-    public List<BarResponse> listByUser(Long userId) {
-        return favoriteRepository.findByUserId(userId).stream()
-                .map(f -> BarResponse.from(f.getBar()))
+    public List<BarResponse> listByUser(String userId) {
+        List<String> barIds = favoriteRepository.findByUserId(userId).stream()
+                .map(Favorite::getBarId)
+                .collect(Collectors.toList());
+        if (barIds.isEmpty()) return List.of();
+        return barRepository.findAllById(barIds).stream()
+                .map(BarResponse::from)
                 .collect(Collectors.toList());
     }
 }

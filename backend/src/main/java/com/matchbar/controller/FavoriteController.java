@@ -25,14 +25,14 @@ public class FavoriteController {
     }
 
     @PostMapping("/{barId}")
-    public ResponseEntity<Void> add(@PathVariable Long barId,
+    public ResponseEntity<Void> add(@PathVariable String barId,
                                     @AuthenticationPrincipal UserPrincipal me) {
         favoriteService.add(me.getId(), barId);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{barId}")
-    public ResponseEntity<Void> remove(@PathVariable Long barId,
+    public ResponseEntity<Void> remove(@PathVariable String barId,
                                        @AuthenticationPrincipal UserPrincipal me) {
         favoriteService.remove(me.getId(), barId);
         return ResponseEntity.noContent().build();

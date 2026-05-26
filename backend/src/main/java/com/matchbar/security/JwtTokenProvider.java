@@ -27,7 +27,7 @@ public class JwtTokenProvider {
     public String generateToken(User user) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .subject(user.getId().toString())
+                .subject(user.getId())
                 .claim("email", user.getEmail())
                 .claim("role", user.getRole().name())
                 .claim("name", user.getName())
@@ -45,7 +45,7 @@ public class JwtTokenProvider {
                 .getPayload();
     }
 
-    public Long getUserId(String token) {
-        return Long.valueOf(parse(token).getSubject());
+    public String getUserId(String token) {
+        return parse(token).getSubject();
     }
 }

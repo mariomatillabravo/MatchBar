@@ -1,22 +1,19 @@
 package com.matchbar.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "broadcasts",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"bar_id", "match_id"}))
+@Document(collection = "broadcasts")
+@CompoundIndex(name = "bar_match_unique", def = "{'barId': 1, 'matchId': 1}", unique = true)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Broadcast {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bar_id", nullable = false)
-    private Bar bar;
+    private String barId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "match_id", nullable = false)
-    private Match match;
+    private String matchId;
 }

@@ -9,11 +9,16 @@ import com.matchbar.repository.BarRepository;
 import com.matchbar.repository.BroadcastRepository;
 import com.matchbar.repository.MatchRepository;
 import lombok.RequiredArgsConstructor;
+import org.bson.types.ObjectId;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -24,46 +29,60 @@ public class MatchService {
     private final MatchRepository matchRepository;
     private final BroadcastRepository broadcastRepository;
     private final BarRepository barRepository;
+    private final MongoTemplate mongoTemplate;
 
-    @Transactional(readOnly = true)
-    public List<MatchResponse> search(Instant from, Instant to, Long competitionId, Long teamId) {
-        return matchRepository.search(from, to, competitionId, teamId).stream()
+    public List<MatchResponse> search(Instant from, Instant to, String competitionId, String teamId) {
+        List<Criteria> parts = new ArrayList<>();
+        if (from != null) parts.add(Criteria.where("kickoffAt").gte(from));
+        if (to != null) parts.add(Criteria.where("kickoffAt").lte(to));
+        if (competitionId != null) parts.add(Criteria.where("competition.$id").is(new ObjectId(competitionId)));
+        if (teamId != null) {
+            ObjectId tid = new ObjectId(teamId);
+            parts.add(new Criteria().orOperator(
+                    Criteria.where("homeTeam.$id").is(tid),
+                    Criteria.where("awayTeam.$id").is(tid)
+            ));
+        }
+
+        Query query = new Query();
+        if (!parts.isEmpty()) query.addCriteria(new Criteria().andOperator(parts.toArray(new Criteria[0])));
+        query.with(Sort.by("kickoffAt").ascending());
+
+        return mongoTemplate.find(query, Match.class).stream()
                 .map(MatchResponse::from)
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public MatchResponse getById(Long id) {
+    public MatchResponse getById(String id) {
         Match m = matchRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Partido no encontrado"));
         return MatchResponse.from(m);
     }
 
-    @Transactional
-    public void scheduleBroadcast(Long userId, Long matchId) {
+    public void scheduleBroadcast(String userId, String matchId) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No tienes ficha de bar creada"));
-        Match match = matchRepository.findById(matchId)
+        matchRepository.findById(matchId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Partido no encontrado"));
-        if (broadcastRepository.existsByBarIdAndMatchId(bar.getId(), matchId)) {
-            return; // ya programado, idempotente
-        }
-        broadcastRepository.save(Broadcast.builder().bar(bar).match(match).build());
+        if (broadcastRepository.existsByBarIdAndMatchId(bar.getId(), matchId)) return;
+        broadcastRepository.save(Broadcast.builder().barId(bar.getId()).matchId(matchId).build());
     }
 
-    @Transactional
-    public void cancelBroadcast(Long userId, Long matchId) {
+    public void cancelBroadcast(String userId, String matchId) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No tienes ficha de bar creada"));
         broadcastRepository.deleteByBarIdAndMatchId(bar.getId(), matchId);
     }
 
-    @Transactional(readOnly = true)
-    public List<MatchResponse> listScheduledByBar(Long userId) {
+    public List<MatchResponse> listScheduledByBar(String userId) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No tienes ficha de bar creada"));
-        return broadcastRepository.findByBarId(bar.getId()).stream()
-                .map(b -> MatchResponse.from(b.getMatch()))
+        List<String> matchIds = broadcastRepository.findByBarId(bar.getId()).stream()
+                .map(Broadcast::getMatchId)
+                .collect(Collectors.toList());
+        if (matchIds.isEmpty()) return List.of();
+        return matchRepository.findAllById(matchIds).stream()
+                .map(MatchResponse::from)
                 .collect(Collectors.toList());
     }
 }

@@ -4,8 +4,8 @@ import com.matchbar.entity.Review;
 import java.time.Instant;
 
 public record ReviewResponse(
-        Long id,
-        Long userId,
+        String id,
+        String userId,
         String userName,
         Integer ratingAtmosphere,
         Integer ratingFood,
@@ -18,8 +18,8 @@ public record ReviewResponse(
         double avg = (r.getRatingAtmosphere() + r.getRatingFood() + r.getRatingPrice()) / 3.0;
         return new ReviewResponse(
                 r.getId(),
-                r.getUser().getId(),
-                r.getUser().getName(),
+                r.getUserId(),
+                r.getUserName(),
                 r.getRatingAtmosphere(),
                 r.getRatingFood(),
                 r.getRatingPrice(),

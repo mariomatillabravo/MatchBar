@@ -25,40 +25,35 @@ public class BarController {
     private final BarService barService;
     private final ReviewService reviewService;
 
-    /** Búsqueda pública de bares cercanos. */
     @GetMapping("/nearby")
     public ResponseEntity<List<BarResponse>> nearby(
             @RequestParam Double lat,
             @RequestParam Double lng,
-            @RequestParam(required = false) Long matchId,
+            @RequestParam(required = false) String matchId,
             @RequestParam(required = false) Integer radiusMeters) {
         return ResponseEntity.ok(barService.findNearby(lat, lng, matchId, radiusMeters));
     }
 
-    /** Ficha pública de un bar. */
     @GetMapping("/{id}")
-    public ResponseEntity<BarResponse> get(@PathVariable Long id) {
+    public ResponseEntity<BarResponse> get(@PathVariable String id) {
         return ResponseEntity.ok(barService.getById(id));
     }
 
-    /** Reseñas de un bar. */
     @GetMapping("/{id}/reviews")
-    public ResponseEntity<List<ReviewResponse>> reviews(@PathVariable Long id) {
+    public ResponseEntity<List<ReviewResponse>> reviews(@PathVariable String id) {
         return ResponseEntity.ok(reviewService.listByBar(id));
     }
 
-    /** Crear reseña: solo USER. */
     @PostMapping("/{id}/reviews")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<ReviewResponse> addReview(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody ReviewRequest req,
             @AuthenticationPrincipal UserPrincipal me) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(reviewService.addReview(me.getId(), id, req));
     }
 
-    /** Crear o actualizar la ficha del bar autenticado. */
     @PostMapping("/me")
     @PreAuthorize("hasRole('BAR')")
     public ResponseEntity<BarResponse> upsertMine(
@@ -67,7 +62,6 @@ public class BarController {
         return ResponseEntity.ok(barService.createOrUpdateForUser(me.getId(), req));
     }
 
-    /** Obtener mi propia ficha (rol BAR). */
     @GetMapping("/me")
     @PreAuthorize("hasRole('BAR')")
     public ResponseEntity<BarResponse> getMine(@AuthenticationPrincipal UserPrincipal me) {

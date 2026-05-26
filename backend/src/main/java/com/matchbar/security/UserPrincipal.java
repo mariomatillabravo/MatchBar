@@ -16,7 +16,7 @@ public class UserPrincipal implements UserDetails {
         this.user = user;
     }
 
-    public Long getId() { return user.getId(); }
+    public String getId() { return user.getId(); }
     public String getEmail() { return user.getEmail(); }
     public String getName() { return user.getName(); }
     public User.Role getRole() { return user.getRole(); }

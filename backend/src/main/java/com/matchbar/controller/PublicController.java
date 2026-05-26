@@ -24,7 +24,7 @@ public class PublicController {
     }
 
     @GetMapping("/teams")
-    public ResponseEntity<List<Team>> teams(@RequestParam(required = false) Long competitionId) {
+    public ResponseEntity<List<Team>> teams(@RequestParam(required = false) String competitionId) {
         return ResponseEntity.ok(competitionId != null
                 ? teamRepository.findByCompetitionId(competitionId)
                 : teamRepository.findAll());

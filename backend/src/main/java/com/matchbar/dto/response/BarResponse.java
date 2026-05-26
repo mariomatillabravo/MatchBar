@@ -4,7 +4,7 @@ import com.matchbar.entity.Bar;
 import java.math.BigDecimal;
 
 public record BarResponse(
-        Long id,
+        String id,
         String name,
         String description,
         String address,

@@ -1,43 +1,35 @@
 package com.matchbar.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+
 import java.time.Instant;
 
-@Entity
-@Table(name = "reviews",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "bar_id"}))
+@Document(collection = "reviews")
+@CompoundIndex(name = "user_bar_unique", def = "{'userId': 1, 'barId': 1}", unique = true)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Review {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private String userId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bar_id", nullable = false)
-    private Bar bar;
+    private String userName;
 
-    @Column(name = "rating_atmosphere", nullable = false)
+    private String barId;
+
     private Integer ratingAtmosphere;
 
-    @Column(name = "rating_food", nullable = false)
     private Integer ratingFood;
 
-    @Column(name = "rating_price", nullable = false)
     private Integer ratingPrice;
 
-    @Column(length = 500)
     private String comment;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @CreatedDate
     private Instant createdAt;
-
-    @PrePersist
-    void onCreate() {
-        if (createdAt == null) createdAt = Instant.now();
-    }
 }

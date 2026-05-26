@@ -1,22 +1,19 @@
 package com.matchbar.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "favorites",
-       uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "bar_id"}))
+@Document(collection = "favorites")
+@CompoundIndex(name = "user_bar_unique", def = "{'userId': 1, 'barId': 1}", unique = true)
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Favorite {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    private String userId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "bar_id", nullable = false)
-    private Bar bar;
+    private String barId;
 }

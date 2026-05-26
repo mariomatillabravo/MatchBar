@@ -32,7 +32,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
-                Long userId = tokenProvider.getUserId(token);
+                String userId = tokenProvider.getUserId(token);
                 if (SecurityContextHolder.getContext().getAuthentication() == null) {
                     userRepository.findById(userId).ifPresent(user -> {
                         UserPrincipal principal = new UserPrincipal(user);

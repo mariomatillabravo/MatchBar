@@ -4,13 +4,13 @@ import com.matchbar.entity.Match;
 import java.time.Instant;
 
 public record MatchResponse(
-        Long id,
-        Long competitionId,
+        String id,
+        String competitionId,
         String competitionName,
-        Long homeTeamId,
+        String homeTeamId,
         String homeTeamName,
         String homeTeamLogo,
-        Long awayTeamId,
+        String awayTeamId,
         String awayTeamName,
         String awayTeamLogo,
         Instant kickoffAt

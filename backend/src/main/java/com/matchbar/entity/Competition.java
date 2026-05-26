@@ -1,22 +1,19 @@
 package com.matchbar.entity;
 
-import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-@Entity
-@Table(name = "competitions")
+@Document(collection = "competitions")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Competition {
 
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Id
+    private String id;
 
-    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 50)
     private String country;
 
-    @Column(name = "logo_url")
     private String logoUrl;
 }
