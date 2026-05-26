@@ -6,6 +6,7 @@ import com.matchbar.dto.response.BarResponse;
 import com.matchbar.dto.response.ReviewResponse;
 import com.matchbar.security.UserPrincipal;
 import com.matchbar.service.BarService;
+import com.matchbar.service.LicenseDocService;
 import com.matchbar.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +15,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/bars")
@@ -24,6 +27,7 @@ public class BarController {
 
     private final BarService barService;
     private final ReviewService reviewService;
+    private final LicenseDocService licenseDocService;
 
     @GetMapping("/nearby")
     public ResponseEntity<List<BarResponse>> nearby(
@@ -66,5 +70,14 @@ public class BarController {
     @PreAuthorize("hasRole('BAR')")
     public ResponseEntity<BarResponse> getMine(@AuthenticationPrincipal UserPrincipal me) {
         return ResponseEntity.ok(barService.getMine(me.getId()));
+    }
+
+    @PostMapping(value = "/me/license", consumes = "multipart/form-data")
+    @PreAuthorize("hasRole('BAR')")
+    public ResponseEntity<Map<String, String>> uploadLicense(
+            @RequestParam("file") MultipartFile file,
+            @AuthenticationPrincipal UserPrincipal me) {
+        String filename = barService.replaceLicense(me.getId(), file, licenseDocService);
+        return ResponseEntity.ok(Map.of("filename", filename));
     }
 }

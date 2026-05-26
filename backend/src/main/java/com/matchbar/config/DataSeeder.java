@@ -2,6 +2,8 @@ package com.matchbar.config;
 
 import com.matchbar.entity.*;
 import com.matchbar.repository.*;
+import com.matchbar.service.LicenseDocService;
+import com.matchbar.util.MinimalPdfGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -26,6 +28,7 @@ public class DataSeeder implements ApplicationRunner {
     private final ReviewRepository reviewRepository;
     private final IncidentRepository incidentRepository;
     private final PasswordEncoder passwordEncoder;
+    private final LicenseDocService licenseDocService;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -53,67 +56,63 @@ public class DataSeeder implements ApplicationRunner {
                 .userId(uRincon.getId()).name("El Rincón del Hincha")
                 .description("Bar tradicional con pantallas en cada esquina y ambiente futbolero. Especialidad en croquetas y cañas.")
                 .address("Calle Bravo Murillo 56, Madrid")
+                .ownerPhone("+34 911 223 344")
                 .latitude(new BigDecimal("40.4500")).longitude(new BigDecimal("-3.7038"))
                 .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.7038, 40.4500))
-                .licenseDoc("licencia-rincon.pdf").status(Bar.Status.APPROVED).build());
+                .status(Bar.Status.APPROVED).build());
 
         Bar centenario = barRepository.save(Bar.builder()
                 .userId(uCentenario.getId()).name("Bar Centenario")
                 .description("Cerveza fría y fútbol nacional e internacional. Tapas caseras desde 1985.")
                 .address("Calle de Alcalá 102, Madrid")
+                .ownerPhone("+34 915 660 110")
                 .latitude(new BigDecimal("40.4220")).longitude(new BigDecimal("-3.6786"))
                 .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.6786, 40.4220))
-                .licenseDoc("licencia-centenario.pdf").status(Bar.Status.APPROVED).build());
+                .status(Bar.Status.APPROVED).build());
 
         // ── Bares PENDIENTES (visibles en el panel admin para aprobar/rechazar) ─
-        barRepository.save(Bar.builder()
-                .userId(uPenalti.getId()).name("El Penalti")
-                .description("Pantalla gigante 4K. Reservado para grupos los días de Champions.")
-                .address("Plaza Mayor 8, Madrid")
-                .latitude(new BigDecimal("40.4155")).longitude(new BigDecimal("-3.7074"))
-                .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.7074, 40.4155))
-                .licenseDoc("licencia-penalti.pdf").status(Bar.Status.PENDING).build());
+        savePendingWithLicense("El Penalti", uPenalti,
+                "Pantalla gigante 4K. Reservado para grupos los días de Champions.",
+                "Plaza Mayor 8, Madrid", "+34 915 480 012",
+                new BigDecimal("40.4155"), new BigDecimal("-3.7074"),
+                "licencia-penalti.pdf");
 
-        barRepository.save(Bar.builder()
-                .userId(uMarcador.getId()).name("Bar El Marcador")
-                .description("Dos plantas, 8 pantallas y carta de cervezas artesanas. Ambiente familiar.")
-                .address("Calle Fuencarral 143, Madrid")
-                .latitude(new BigDecimal("40.4310")).longitude(new BigDecimal("-3.7020"))
-                .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.7020, 40.4310))
-                .licenseDoc("licencia-marcador.pdf").status(Bar.Status.PENDING).build());
+        savePendingWithLicense("Bar El Marcador", uMarcador,
+                "Dos plantas, 8 pantallas y carta de cervezas artesanas. Ambiente familiar.",
+                "Calle Fuencarral 143, Madrid", "+34 914 471 220",
+                new BigDecimal("40.4310"), new BigDecimal("-3.7020"),
+                "licencia-marcador.pdf");
 
-        barRepository.save(Bar.builder()
-                .userId(uOffside.getId()).name("Offside Sports Bar")
-                .description("Sports bar al estilo anglosajón. Retransmisión de Premier, NFL y NBA.")
-                .address("Calle Gran Vía 45, Madrid")
-                .latitude(new BigDecimal("40.4200")).longitude(new BigDecimal("-3.7050"))
-                .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.7050, 40.4200))
-                .licenseDoc("licencia-offside.pdf").status(Bar.Status.PENDING).build());
+        savePendingWithLicense("Offside Sports Bar", uOffside,
+                "Sports bar al estilo anglosajón. Retransmisión de Premier, NFL y NBA.",
+                "Calle Gran Vía 45, Madrid", "+34 915 322 100",
+                new BigDecimal("40.4200"), new BigDecimal("-3.7050"),
+                "licencia-offside.pdf");
 
-        barRepository.save(Bar.builder()
-                .userId(uDerby.getId()).name("Derby Bar")
-                .description("El punto de encuentro de los aficionados del barrio. Terraza exterior en verano.")
-                .address("Calle de Lavapiés 22, Madrid")
-                .latitude(new BigDecimal("40.4090")).longitude(new BigDecimal("-3.7010"))
-                .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.7010, 40.4090))
-                .licenseDoc("licencia-derby.pdf").status(Bar.Status.PENDING).build());
+        savePendingWithLicense("Derby Bar", uDerby,
+                "El punto de encuentro de los aficionados del barrio. Terraza exterior en verano.",
+                "Calle de Lavapiés 22, Madrid", "+34 915 270 998",
+                new BigDecimal("40.4090"), new BigDecimal("-3.7010"),
+                "licencia-derby.pdf");
 
         // ── Bares RECHAZADOS (para que aparezcan en las estadísticas) ───────────
         barRepository.save(Bar.builder()
                 .userId(uCorner.getId()).name("The Corner Pub")
                 .description("Pub inglés con retransmisiones de fútbol.")
                 .address("Calle Serrano 12, Madrid")
+                .ownerPhone("+34 914 311 005")
                 .latitude(new BigDecimal("40.4260")).longitude(new BigDecimal("-3.6880"))
                 .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.6880, 40.4260))
-                .licenseDoc("licencia-corner.pdf").status(Bar.Status.REJECTED).build());
+                .status(Bar.Status.REJECTED).build());
 
         barRepository.save(Bar.builder()
                 .userId(uUltra.getId()).name("Ultra Bar")
                 .description("Bar de aficionados con decoración de equipos históricos.")
                 .address("Avenida de América 3, Madrid")
+                .ownerPhone("+34 917 121 808")
                 .latitude(new BigDecimal("40.4370")).longitude(new BigDecimal("-3.6760"))
                 .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.6760, 40.4370))
-                .licenseDoc("licencia-ultra.pdf").status(Bar.Status.REJECTED).build());
+                .status(Bar.Status.REJECTED).build());
 
         // ── Competiciones y equipos ─────────────────────────────────────────────
         Competition laliga    = competitionRepository.save(Competition.builder().name("LaLiga").country("España").build());
@@ -213,5 +212,34 @@ public class DataSeeder implements ApplicationRunner {
                         .status(Incident.Status.RESOLVED).createdAt(fourDaysAgo.minus(1, ChronoUnit.DAYS))
                         .resolvedAt(fourDaysAgo).build()
         ));
+    }
+
+    private void savePendingWithLicense(String name, User owner, String description,
+                                        String address, String phone,
+                                        BigDecimal lat, BigDecimal lng, String filename) {
+        byte[] pdf = MinimalPdfGenerator.generate(
+                "Licencia de actividad — " + name,
+                List.of(
+                        "Titular: " + owner.getName(),
+                        "Email de contacto: " + owner.getEmail(),
+                        "Teléfono: " + phone,
+                        "Dirección del local: " + address,
+                        "",
+                        "Documento de muestra generado automáticamente",
+                        "por el seeder de MatchBar. Sustituir por la",
+                        "licencia real en producción."
+                )
+        );
+        String fileId = licenseDocService.store(pdf, filename);
+        barRepository.save(Bar.builder()
+                .userId(owner.getId()).name(name)
+                .description(description)
+                .address(address)
+                .ownerPhone(phone)
+                .latitude(lat).longitude(lng)
+                .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(lng.doubleValue(), lat.doubleValue()))
+                .licenseDocFileId(fileId)
+                .licenseDocFilename(filename)
+                .status(Bar.Status.PENDING).build());
     }
 }

@@ -33,7 +33,11 @@ public class Bar {
     @GeoSpatialIndexed(type = GeoSpatialIndexType.GEO_2DSPHERE)
     private GeoJsonPoint location;
 
-    private String licenseDoc;
+    private String ownerPhone;
+
+    private String licenseDocFileId;
+
+    private String licenseDocFilename;
 
     private String photoUrl;
 

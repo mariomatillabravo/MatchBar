@@ -32,6 +32,8 @@ data class Bar(
     val address: String,
     val latitude: Double,
     val longitude: Double,
+    val ownerPhone: String? = null,
+    val licenseDocFilename: String? = null,
     val photoUrl: String? = null,
     val status: String,
     val distanceMeters: Double? = null,
@@ -45,7 +47,7 @@ data class BarUpsertRequest(
     val address: String,
     val latitude: Double,
     val longitude: Double,
-    val licenseDoc: String? = null,
+    val ownerPhone: String? = null,
     val photoUrl: String? = null
 )
 
@@ -97,4 +99,9 @@ data class Team(
     val id: Long,
     val name: String,
     val logoUrl: String? = null
+)
+
+@Serializable
+data class LicenseUploadResponse(
+    val filename: String
 )

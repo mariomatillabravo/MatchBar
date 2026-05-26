@@ -55,7 +55,7 @@
   .tab-btn:hover { color: white; opacity: 1; }
   .tab-btn.active { color: white; border-bottom-color: #5b9bd5; }
 
-  main { max-width: 1200px; margin: 2rem auto; padding: 0 2rem; }
+  main { max-width: 95vw; margin: 2rem auto; padding: 0 2rem; }
 
   /* Login */
   .login-box { max-width: 400px; margin: 5rem auto; background: var(--card);
@@ -107,6 +107,48 @@
   .filter-row { display: flex; gap: 0.5rem; align-items: center; }
   .filter-row select { padding: 0.45rem 0.75rem; border: 1px solid var(--border);
                        border-radius: 4px; font-size: 0.9rem; }
+
+  /* Toast notifications (bottom-right) */
+  #toast-container {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    z-index: 9999;
+    pointer-events: none;
+  }
+  .toast {
+    min-width: 260px;
+    max-width: 360px;
+    padding: 0.9rem 1.2rem;
+    border-radius: 6px;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    opacity: 0;
+    transform: translateX(120%);
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    pointer-events: auto;
+  }
+  .toast.show { opacity: 1; transform: translateX(0); }
+  .toast.success { background: var(--success); }
+  .toast.error   { background: var(--danger); }
+
+  /* Documentación adjunta — botón pequeño */
+  .doc-link {
+    background: transparent;
+    color: var(--primary-light);
+    border: 1px solid var(--primary-light);
+    padding: 0.35rem 0.7rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+  .doc-link:hover { background: var(--primary-light); color: white; opacity: 1; }
+  .doc-none { color: var(--muted); font-size: 0.8rem; font-style: italic; }
 </style>
 </head>
 <body>
@@ -135,7 +177,7 @@
   <!-- Tab navigation -->
   <nav class="tabs-bar">
     <button class="tab-btn active" id="tab-bars-btn" onclick="switchTab('bars')">
-      Solicitudes de bares pendientes
+      Solicitudes de bares
     </button>
     <button class="tab-btn" id="tab-incidents-btn" onclick="switchTab('incidents')">
       Incidencias
@@ -171,11 +213,17 @@
       <table>
         <thead>
           <tr>
-            <th>ID</th><th>Nombre</th><th>Dirección</th><th>Estado</th><th>Acciones</th>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Dirección</th>
+            <th>Nombre Dueño</th>
+            <th>Contacto tlf.</th>
+            <th>Documentación adjunta</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody id="pending-tbody">
-          <tr><td colspan="5" class="empty">Cargando…</td></tr>
+          <tr><td colspan="7" class="empty">Cargando…</td></tr>
         </tbody>
       </table>
     </div>
@@ -222,6 +270,9 @@
       </table>
     </div>
   </main>
+
+  <!-- Contenedor de notificaciones toast -->
+  <div id="toast-container"></div>
 </div>
 
 <script>
@@ -311,33 +362,73 @@ async function loadPending() {
     document.getElementById('stat-rejected').textContent = stats.rejected;
 
     if (bars.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">No hay bares pendientes</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay bares pendientes</td></tr>';
       return;
     }
-    tbody.innerHTML = bars.map(b => `
-      <tr>
-        <td style="font-size:0.75rem;color:var(--muted)">${b.id}</td>
-        <td><strong>${escapeHtml(b.name)}</strong></td>
-        <td>${escapeHtml(b.address)}</td>
-        <td><span class="badge badge-pending">Pendiente</span></td>
-        <td class="actions">
-          <button class="btn-success" onclick="approve('${b.id}')">Aprobar</button>
-          <button class="btn-danger"  onclick="reject('${b.id}')">Rechazar</button>
-        </td>
-      </tr>`).join('');
+    tbody.innerHTML = bars.map(b => {
+      const phoneCell = b.ownerPhone
+        ? `<a href="tel:${escapeHtml(b.ownerPhone)}" style="color:var(--primary-light);text-decoration:none">${escapeHtml(b.ownerPhone)}</a>`
+        : '<span class="doc-none">—</span>';
+      const docCell = b.licenseDocUrl
+        ? `<button class="doc-link" onclick="viewLicense('${b.id}')">📄 ${escapeHtml(b.licenseDocFilename || 'Ver licencia')}</button>`
+        : '<span class="doc-none">Sin documentación</span>';
+      return `
+        <tr>
+          <td style="font-size:0.75rem;color:var(--muted)">${b.id}</td>
+          <td><strong>${escapeHtml(b.name)}</strong></td>
+          <td>${escapeHtml(b.address)}</td>
+          <td>${escapeHtml(b.ownerName || '—')}<br>
+              <span style="color:var(--muted);font-size:0.8rem">${escapeHtml(b.ownerEmail || '')}</span></td>
+          <td>${phoneCell}</td>
+          <td>${docCell}</td>
+          <td class="actions">
+            <button class="btn-success" onclick="approve('${b.id}')">Aprobar</button>
+            <button class="btn-danger"  onclick="reject('${b.id}')">Rechazar</button>
+          </td>
+        </tr>`;
+    }).join('');
   } catch (e) {
     console.error(e);
+    showToast('Error al cargar las solicitudes', 'error');
   }
 }
 
 async function approve(id) {
-  await api(`/api/admin/bars/${id}/approve`, {method: 'PATCH'});
-  loadPending();
+  try {
+    await api(`/api/admin/bars/${id}/approve`, {method: 'PATCH'});
+    showToast('Bar aceptado correctamente', 'success');
+    loadPending();
+  } catch (e) {
+    console.error(e);
+    showToast('Error al aceptar el bar', 'error');
+  }
 }
 
 async function reject(id) {
-  await api(`/api/admin/bars/${id}/reject`, {method: 'PATCH'});
-  loadPending();
+  try {
+    await api(`/api/admin/bars/${id}/reject`, {method: 'PATCH'});
+    showToast('Eliminada la solicitud', 'error');
+    loadPending();
+  } catch (e) {
+    console.error(e);
+    showToast('Error al eliminar la solicitud', 'error');
+  }
+}
+
+async function viewLicense(barId) {
+  try {
+    const res = await fetch(`${API}/api/admin/bars/${barId}/license`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error(`Error ${res.status}`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    console.error(e);
+    showToast('No se pudo abrir la licencia', 'error');
+  }
 }
 
 /* ── Incidencias ─────────────────────────────────────────── */
@@ -424,6 +515,20 @@ async function resolveIncident(id) {
 function escapeHtml(s) {
   if (!s) return '';
   return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+function showToast(message, type) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type || 'success'}`;
+  toast.textContent = message;
+  container.appendChild(toast);
+  // Trigger transition
+  requestAnimationFrame(() => toast.classList.add('show'));
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
 }
 </script>
 </body>

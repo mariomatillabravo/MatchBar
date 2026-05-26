@@ -2,6 +2,7 @@ package com.matchbar.service;
 
 import com.matchbar.dto.request.BarUpsertRequest;
 import com.matchbar.dto.response.BarResponse;
+import com.matchbar.dto.response.PendingBarResponse;
 import com.matchbar.entity.Bar;
 import com.matchbar.entity.User;
 import com.matchbar.exception.ApiException;
@@ -19,8 +20,10 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,7 +51,7 @@ public class BarService {
         bar.setLatitude(req.latitude());
         bar.setLongitude(req.longitude());
         bar.setLocation(new GeoJsonPoint(req.longitude().doubleValue(), req.latitude().doubleValue()));
-        if (req.licenseDoc() != null) bar.setLicenseDoc(req.licenseDoc());
+        if (req.ownerPhone() != null) bar.setOwnerPhone(req.ownerPhone());
         if (req.photoUrl() != null) bar.setPhotoUrl(req.photoUrl());
         bar = barRepository.save(bar);
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
@@ -99,10 +102,38 @@ public class BarService {
         );
     }
 
-    public List<BarResponse> listPending() {
-        return barRepository.findByStatus(Bar.Status.PENDING).stream()
-                .map(b -> BarResponse.from(b, null, computeAverage(b.getId())))
-                .collect(Collectors.toList());
+    public List<PendingBarResponse> listPending() {
+        List<Bar> bars = barRepository.findByStatus(Bar.Status.PENDING);
+        Set<String> ownerIds = bars.stream().map(Bar::getUserId).collect(Collectors.toSet());
+        Map<String, User> ownersById = userRepository.findAllById(ownerIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        return bars.stream().map(b -> {
+            User owner = ownersById.get(b.getUserId());
+            String licenseUrl = b.getLicenseDocFileId() != null
+                    ? "/api/admin/bars/" + b.getId() + "/license"
+                    : null;
+            return new PendingBarResponse(
+                    b.getId(), b.getName(), b.getAddress(),
+                    owner != null ? owner.getName() : null,
+                    owner != null ? owner.getEmail() : null,
+                    b.getOwnerPhone(),
+                    b.getLicenseDocFilename(),
+                    licenseUrl
+            );
+        }).collect(Collectors.toList());
+    }
+
+    public String replaceLicense(String userId, MultipartFile file, LicenseDocService licenseDocService) {
+        Bar bar = barRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
+        if (bar.getLicenseDocFileId() != null) {
+            licenseDocService.delete(bar.getLicenseDocFileId());
+        }
+        String fileId = licenseDocService.store(file);
+        bar.setLicenseDocFileId(fileId);
+        bar.setLicenseDocFilename(file.getOriginalFilename());
+        barRepository.save(bar);
+        return file.getOriginalFilename();
     }
 
     public BarResponse setStatus(String barId, Bar.Status status) {

@@ -1,6 +1,7 @@
 package com.matchbar.app.data.api
 
 import com.matchbar.app.data.model.*
+import okhttp3.MultipartBody
 import retrofit2.http.*
 
 interface MatchBarApi {
@@ -57,6 +58,10 @@ interface MatchBarApi {
 
     @POST("api/bars/me")
     suspend fun upsertMyBar(@Body req: BarUpsertRequest): Bar
+
+    @Multipart
+    @POST("api/bars/me/license")
+    suspend fun uploadLicense(@Part file: MultipartBody.Part): LicenseUploadResponse
 
     // ----- Reviews -----
     @GET("api/bars/{id}/reviews")
