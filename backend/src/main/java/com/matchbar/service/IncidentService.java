@@ -47,4 +47,11 @@ public class IncidentService {
         incident.setResolvedAt(Instant.now());
         return IncidentResponse.from(incidentRepository.save(incident));
     }
+
+    public void delete(String id) {
+        if (!incidentRepository.existsById(id)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Incidencia no encontrada");
+        }
+        incidentRepository.deleteById(id);
+    }
 }

@@ -81,7 +81,8 @@
                  display: flex; justify-content: space-between; align-items: center; }
   .card-header h3 { color: var(--primary); }
   table { width: 100%; border-collapse: collapse; }
-  th, td { padding: 0.85rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border); }
+  th, td { padding: 0.85rem 1.5rem; text-align: left; border-bottom: 1px solid var(--border);
+           vertical-align: middle; }
   th { background: #f8f9fa; font-weight: 600; font-size: 0.85rem;
        text-transform: uppercase; color: var(--muted); }
   tr:last-child td { border-bottom: none; }
@@ -97,7 +98,7 @@
   .badge-user     { background: #e7f3ff; color: #0c5460; }
   .badge-bar      { background: #f3e7ff; color: #3d1a78; }
 
-  .actions { display: flex; gap: 0.5rem; }
+  .actions { display: flex; gap: 0.5rem; align-items: center; justify-content: flex-start; }
   .actions button { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
 
   .hidden { display: none !important; }
@@ -107,6 +108,35 @@
   .filter-row { display: flex; gap: 0.5rem; align-items: center; }
   .filter-row select { padding: 0.45rem 0.75rem; border: 1px solid var(--border);
                        border-radius: 4px; font-size: 0.9rem; }
+
+  /* Clickable incident rows */
+  #incidents-tbody tr { cursor: pointer; transition: background 0.15s; }
+  #incidents-tbody tr:hover td { background: #f0f4f8; }
+
+  /* Incident detail view */
+  .detail-card { background: var(--card); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); padding: 2rem; }
+  .detail-back { display: inline-flex; align-items: center; gap: 0.4rem; background: transparent;
+                 color: var(--primary-light); border: 1px solid var(--primary-light);
+                 padding: 0.45rem 0.9rem; border-radius: 4px; font-size: 0.9rem; margin-bottom: 1.5rem; }
+  .detail-back:hover { background: var(--primary-light); color: white; opacity: 1; }
+  .detail-grid { display: grid; grid-template-columns: 200px 1fr; gap: 0.75rem 1.5rem; margin-bottom: 2rem; }
+  .detail-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+                  color: var(--muted); padding-top: 0.15rem; }
+  .detail-value { color: var(--text); font-size: 0.95rem; }
+  .detail-message { white-space: pre-wrap; word-break: break-word; background: #f8f9fa;
+                    border: 1px solid var(--border); border-radius: 6px; padding: 1rem;
+                    font-size: 0.95rem; line-height: 1.6; }
+  .detail-actions { display: flex; gap: 0.75rem; padding-top: 1.5rem;
+                    border-top: 1px solid var(--border); flex-wrap: wrap; }
+
+  /* Confirm modal overlay */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+                   display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-box { background: var(--card); border-radius: 10px; padding: 2rem;
+               max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+  .modal-box h3 { color: var(--primary); margin-bottom: 0.75rem; font-size: 1.1rem; }
+  .modal-box p { color: var(--text); font-size: 0.95rem; margin-bottom: 1.5rem; line-height: 1.5; }
+  .modal-actions { display: flex; gap: 0.75rem; justify-content: flex-end; }
 
   /* Toast notifications (bottom-right) */
   #toast-container {
@@ -231,45 +261,69 @@
 
   <!-- Tab: Incidencias -->
   <main id="tab-incidents" class="hidden">
-    <div class="stats">
-      <div class="stat-card">
-        <div class="label">Total incidencias</div>
-        <div class="value" id="stat-inc-total">—</div>
+    <!-- Vista: lista -->
+    <div id="incident-list">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="label">Total incidencias</div>
+          <div class="value" id="stat-inc-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Abiertas</div>
+          <div class="value" id="stat-inc-open" style="color:var(--warning)">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Resueltas</div>
+          <div class="value" id="stat-inc-resolved" style="color:var(--success)">—</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="label">Abiertas</div>
-        <div class="value" id="stat-inc-open" style="color:var(--warning)">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Resueltas</div>
-        <div class="value" id="stat-inc-resolved" style="color:var(--success)">—</div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Incidencias recibidas</h3>
+          <div class="filter-row">
+            <select id="inc-filter" onchange="renderIncidents()">
+              <option value="ALL">Todas</option>
+              <option value="OPEN">Abiertas</option>
+              <option value="RESOLVED">Resueltas</option>
+            </select>
+            <button class="btn-primary" onclick="loadIncidents()">Recargar</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Remitente</th><th>Tipo</th><th>Asunto</th><th>Mensaje</th><th>Estado</th><th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody id="incidents-tbody">
+            <tr><td colspan="7" class="empty">Cargando…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h3>Incidencias recibidas</h3>
-        <div class="filter-row">
-          <select id="inc-filter" onchange="renderIncidents()">
-            <option value="ALL">Todas</option>
-            <option value="OPEN">Abiertas</option>
-            <option value="RESOLVED">Resueltas</option>
-          </select>
-          <button class="btn-primary" onclick="loadIncidents()">Recargar</button>
-        </div>
+    <!-- Vista: detalle -->
+    <div id="incident-detail" class="hidden">
+      <button class="detail-back" onclick="closeIncidentDetail()">&#8592; Volver</button>
+      <div class="detail-card">
+        <div class="detail-grid" id="detail-grid"></div>
+        <div class="detail-actions" id="detail-actions"></div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th><th>Remitente</th><th>Tipo</th><th>Asunto</th><th>Mensaje</th><th>Estado</th><th>Fecha</th><th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="incidents-tbody">
-          <tr><td colspan="8" class="empty">Cargando…</td></tr>
-        </tbody>
-      </table>
     </div>
   </main>
+
+  <!-- Modal confirmación borrado -->
+  <div id="confirm-modal" class="modal-overlay hidden">
+    <div class="modal-box">
+      <h3>Eliminar incidencia</h3>
+      <p>¿Estás seguro de que quieres eliminar esta incidencia? Esta acción no se puede deshacer.</p>
+      <div class="modal-actions">
+        <button class="btn-primary" onclick="closeConfirmModal()">Cancelar</button>
+        <button class="btn-danger" id="confirm-delete-btn">Eliminar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Contenedor de notificaciones toast -->
   <div id="toast-container"></div>
@@ -468,7 +522,7 @@ function renderIncidents() {
 
   const tbody = document.getElementById('incidents-tbody');
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" class="empty">No hay incidencias</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay incidencias</td></tr>';
     return;
   }
 
@@ -480,12 +534,9 @@ function renderIncidents() {
     const date = new Date(i.createdAt).toLocaleDateString('es-ES', {
       day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
     });
-    const resolveBtn = i.status === 'OPEN'
-      ? `<button class="btn-warning" onclick="resolveIncident(${i.id})">Resolver</button>`
-      : '<span style="color:var(--muted);font-size:0.8rem">Resuelta</span>';
     return `
-      <tr>
-        <td>${i.id}</td>
+      <tr onclick="openIncidentDetail('${escapeHtml(i.id)}')">
+        <td style="font-size:0.75rem;color:var(--muted)">${escapeHtml(i.id)}</td>
         <td><strong>${escapeHtml(i.senderName)}</strong><br>
             <span style="color:var(--muted);font-size:0.8rem">${escapeHtml(i.senderEmail)}</span></td>
         <td><span class="badge ${typeCss}">${typeLabel}</span></td>
@@ -493,9 +544,88 @@ function renderIncidents() {
         <td class="msg-cell" title="${escapeHtml(i.message)}">${escapeHtml(i.message)}</td>
         <td><span class="badge ${statusCss}">${statusLabel}</span></td>
         <td style="white-space:nowrap;font-size:0.85rem">${date}</td>
-        <td class="actions">${resolveBtn}</td>
       </tr>`;
   }).join('');
+}
+
+function openIncidentDetail(id) {
+  const i = allIncidents.find(inc => inc.id === id);
+  if (!i) return;
+
+  const typeLabel  = i.senderType === 'BAR' ? 'Bar' : 'Usuario';
+  const typeCss    = i.senderType === 'BAR' ? 'badge-bar' : 'badge-user';
+  const statusCss  = i.status === 'OPEN' ? 'badge-open' : 'badge-resolved';
+  const statusLabel = i.status === 'OPEN' ? 'Abierta' : 'Resuelta';
+  const createdAt  = new Date(i.createdAt).toLocaleDateString('es-ES', {
+    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+  });
+  const resolvedAt = i.resolvedAt
+    ? new Date(i.resolvedAt).toLocaleDateString('es-ES', {
+        day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+      })
+    : null;
+
+  document.getElementById('detail-grid').innerHTML = `
+    <span class="detail-label">ID</span>
+    <span class="detail-value" style="font-size:0.8rem;color:var(--muted)">${escapeHtml(i.id)}</span>
+
+    <span class="detail-label">Remitente</span>
+    <span class="detail-value">
+      <strong>${escapeHtml(i.senderName)}</strong>
+      <br><span style="color:var(--muted);font-size:0.85rem">${escapeHtml(i.senderEmail)}</span>
+    </span>
+
+    <span class="detail-label">Tipo</span>
+    <span class="detail-value"><span class="badge ${typeCss}">${typeLabel}</span></span>
+
+    <span class="detail-label">Estado</span>
+    <span class="detail-value"><span class="badge ${statusCss}">${statusLabel}</span></span>
+
+    <span class="detail-label">Asunto</span>
+    <span class="detail-value"><strong>${escapeHtml(i.subject)}</strong></span>
+
+    <span class="detail-label">Mensaje</span>
+    <span class="detail-value"><div class="detail-message">${escapeHtml(i.message)}</div></span>
+
+    <span class="detail-label">Fecha de envío</span>
+    <span class="detail-value">${createdAt}</span>
+
+    ${resolvedAt ? `
+    <span class="detail-label">Fecha de resolución</span>
+    <span class="detail-value">${resolvedAt}</span>
+    ` : ''}
+  `;
+
+  const actions = document.getElementById('detail-actions');
+  const resolveBtn = i.status === 'OPEN'
+    ? `<button class="btn-warning" onclick="resolveIncidentDetail('${escapeHtml(i.id)}')">Marcar como resuelta</button>`
+    : '';
+  actions.innerHTML = `
+    ${resolveBtn}
+    <button class="btn-danger" onclick="openConfirmModal('${escapeHtml(i.id)}')">Eliminar incidencia</button>
+  `;
+
+  document.getElementById('incident-list').classList.add('hidden');
+  document.getElementById('incident-detail').classList.remove('hidden');
+}
+
+function closeIncidentDetail() {
+  document.getElementById('incident-detail').classList.add('hidden');
+  document.getElementById('incident-list').classList.remove('hidden');
+}
+
+async function resolveIncidentDetail(id) {
+  try {
+    const updated = await api(`/api/admin/incidents/${id}/resolve`, {method: 'PATCH'});
+    const idx = allIncidents.findIndex(i => i.id === id);
+    if (idx !== -1) allIncidents[idx] = updated;
+    updateIncidentStats();
+    showToast('Incidencia marcada como resuelta', 'success');
+    openIncidentDetail(id);
+  } catch (e) {
+    console.error(e);
+    showToast('Error al resolver la incidencia', 'error');
+  }
 }
 
 async function resolveIncident(id) {
@@ -507,6 +637,33 @@ async function resolveIncident(id) {
     renderIncidents();
   } catch (e) {
     console.error(e);
+  }
+}
+
+/* ── Modal de confirmación de borrado ─────────────────────── */
+
+function openConfirmModal(id) {
+  const modal = document.getElementById('confirm-modal');
+  modal.classList.remove('hidden');
+  document.getElementById('confirm-delete-btn').onclick = () => deleteIncident(id);
+}
+
+function closeConfirmModal() {
+  document.getElementById('confirm-modal').classList.add('hidden');
+}
+
+async function deleteIncident(id) {
+  closeConfirmModal();
+  try {
+    await api(`/api/admin/incidents/${id}`, {method: 'DELETE'});
+    allIncidents = allIncidents.filter(i => i.id !== id);
+    updateIncidentStats();
+    renderIncidents();
+    closeIncidentDetail();
+    showToast('Incidencia eliminada correctamente', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Error al eliminar la incidencia', 'error');
   }
 }
 

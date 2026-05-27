@@ -75,4 +75,10 @@ public class AdminController {
     public ResponseEntity<IncidentResponse> resolveIncident(@PathVariable String id) {
         return ResponseEntity.ok(incidentService.resolve(id));
     }
+
+    @DeleteMapping("/incidents/{id}")
+    public ResponseEntity<Void> deleteIncident(@PathVariable String id) {
+        incidentService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }
