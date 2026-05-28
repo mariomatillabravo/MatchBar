@@ -97,6 +97,7 @@
   .badge-resolved { background: #d4edda; color: #155724; }
   .badge-user     { background: #e7f3ff; color: #0c5460; }
   .badge-bar      { background: #f3e7ff; color: #3d1a78; }
+  .badge-admin    { background: #fde8e8; color: #721c24; }
 
   .actions { display: flex; gap: 0.5rem; align-items: center; justify-content: flex-start; }
   .actions button { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
@@ -109,9 +110,26 @@
   .filter-row select { padding: 0.45rem 0.75rem; border: 1px solid var(--border);
                        border-radius: 4px; font-size: 0.9rem; }
 
-  /* Clickable incident rows */
-  #incidents-tbody tr { cursor: pointer; transition: background 0.15s; }
-  #incidents-tbody tr:hover td { background: #f0f4f8; }
+  /* Clickable rows */
+  #incidents-tbody tr,
+  #pending-tbody tr.clickable,
+  #all-bars-tbody tr.clickable,
+  #users-tbody tr.clickable { cursor: pointer; transition: background 0.15s; }
+  #incidents-tbody tr:hover td,
+  #pending-tbody tr.clickable:hover td,
+  #all-bars-tbody tr.clickable:hover td,
+  #users-tbody tr.clickable:hover td { background: #f0f4f8; }
+
+  /* Form grid (detail edit) */
+  .form-grid { display: grid; grid-template-columns: 200px 1fr; gap: 1rem 1.5rem;
+               margin-bottom: 2rem; align-items: center; }
+  .form-label { font-size: 0.85rem; font-weight: 600; text-transform: uppercase;
+                color: var(--muted); }
+  .form-input { width: 100%; padding: 0.55rem 0.75rem; border: 1px solid var(--border);
+                border-radius: 4px; font-size: 0.95rem; font-family: inherit;
+                background: white; color: var(--text); }
+  .form-input:disabled { background: #f8f9fa; color: var(--muted); cursor: not-allowed; }
+  textarea.form-input { resize: vertical; min-height: 70px; }
 
   /* Incident detail view */
   .detail-card { background: var(--card); border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.05); padding: 2rem; }
@@ -216,46 +234,67 @@
         border-radius:10px; font-size:0.7rem; padding:0 6px; margin-left:6px; vertical-align:middle;">
       </span>
     </button>
+    <button class="tab-btn" id="tab-all-bars-btn" onclick="switchTab('all-bars')">
+      Bares
+    </button>
+    <button class="tab-btn" id="tab-users-btn" onclick="switchTab('users')">
+      Usuarios
+    </button>
   </nav>
 
   <!-- Tab: Bares pendientes -->
   <main id="tab-bars">
-    <div class="stats">
-      <div class="stat-card">
-        <div class="label">Bares pendientes</div>
-        <div class="value" id="stat-pending">—</div>
+    <!-- Vista: lista -->
+    <div id="pending-list">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="label">Bares pendientes</div>
+          <div class="value" id="stat-pending">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Bares aprobados</div>
+          <div class="value" id="stat-approved">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Bares rechazados</div>
+          <div class="value" id="stat-rejected">—</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="label">Bares aprobados</div>
-        <div class="value" id="stat-approved">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="label">Bares rechazados</div>
-        <div class="value" id="stat-rejected">—</div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Bares pendientes de validación</h3>
+          <button class="btn-primary" onclick="loadPending()">Recargar</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nombre</th>
+              <th>Dirección</th>
+              <th>Nombre Dueño</th>
+              <th>Contacto tlf.</th>
+              <th>Documentación adjunta</th>
+            </tr>
+          </thead>
+          <tbody id="pending-tbody">
+            <tr><td colspan="6" class="empty">Cargando…</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header">
-        <h3>Bares pendientes de validación</h3>
-        <button class="btn-primary" onclick="loadPending()">Recargar</button>
+    <!-- Vista: detalle de la solicitud -->
+    <div id="pending-detail" class="hidden">
+      <button class="detail-back" onclick="closePendingDetail()">&#8592; Volver</button>
+      <div class="detail-card">
+        <h3 style="color:var(--primary);margin-bottom:1.5rem">Solicitud de bar</h3>
+        <div class="detail-grid" id="pending-detail-grid"></div>
+        <div class="detail-actions">
+          <button class="btn-success" id="pending-approve-btn">Aceptar solicitud</button>
+          <button class="btn-danger"  id="pending-reject-btn">Eliminar solicitud</button>
+        </div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Nombre</th>
-            <th>Dirección</th>
-            <th>Nombre Dueño</th>
-            <th>Contacto tlf.</th>
-            <th>Documentación adjunta</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="pending-tbody">
-          <tr><td colspan="7" class="empty">Cargando…</td></tr>
-        </tbody>
-      </table>
     </div>
   </main>
 
@@ -313,6 +352,161 @@
     </div>
   </main>
 
+  <!-- Tab: Bares (sólo aprobados) -->
+  <main id="tab-all-bars" class="hidden">
+    <!-- Vista: lista -->
+    <div id="all-bars-list">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="label">Bares aprobados</div>
+          <div class="value" id="stat-allbars-approved" style="color:var(--success)">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Bares aprobados</h3>
+          <button class="btn-primary" onclick="loadAllBars()">Recargar</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Nombre</th><th>Dirección</th><th>Dueño</th><th>Valoración</th><th>Alta</th>
+            </tr>
+          </thead>
+          <tbody id="all-bars-tbody">
+            <tr><td colspan="6" class="empty">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vista: detalle del bar -->
+    <div id="bar-detail" class="hidden">
+      <button class="detail-back" onclick="closeBarDetail()">&#8592; Volver</button>
+      <div class="detail-card">
+        <h3 style="color:var(--primary);margin-bottom:1.5rem">Editar bar</h3>
+        <div class="form-grid">
+          <label class="form-label">ID</label>
+          <input type="text" id="bar-edit-id" class="form-input" disabled>
+
+          <label class="form-label">Nombre</label>
+          <input type="text" id="bar-edit-name" class="form-input">
+
+          <label class="form-label">Descripción</label>
+          <textarea id="bar-edit-description" class="form-input" rows="3"></textarea>
+
+          <label class="form-label">Dirección</label>
+          <input type="text" id="bar-edit-address" class="form-input">
+
+          <label class="form-label">Latitud</label>
+          <input type="number" step="any" id="bar-edit-latitude" class="form-input">
+
+          <label class="form-label">Longitud</label>
+          <input type="number" step="any" id="bar-edit-longitude" class="form-input">
+
+          <label class="form-label">Teléfono</label>
+          <input type="text" id="bar-edit-phone" class="form-input">
+
+          <label class="form-label">URL foto</label>
+          <input type="text" id="bar-edit-photo" class="form-input">
+
+          <label class="form-label">Dueño</label>
+          <div class="detail-value" id="bar-edit-owner"></div>
+
+          <label class="form-label">Valoración</label>
+          <div class="detail-value" id="bar-edit-rating"></div>
+
+          <label class="form-label">Alta</label>
+          <div class="detail-value" id="bar-edit-createdat"></div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn-success" id="bar-save-btn">Guardar cambios</button>
+          <button class="btn-danger"  id="bar-delete-btn">Eliminar bar</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Tab: Usuarios -->
+  <main id="tab-users" class="hidden">
+    <!-- Vista: lista -->
+    <div id="users-list">
+      <div class="stats">
+        <div class="stat-card">
+          <div class="label">Total</div>
+          <div class="value" id="stat-users-total">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Usuarios</div>
+          <div class="value" id="stat-users-user" style="color:var(--primary-light)">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Administradores</div>
+          <div class="value" id="stat-users-admin" style="color:var(--danger)">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Usuarios registrados</h3>
+          <div class="filter-row">
+            <select id="user-role-filter" onchange="renderUsers()">
+              <option value="ALL">Todos</option>
+              <option value="USER">Usuarios</option>
+              <option value="ADMIN">Administradores</option>
+            </select>
+            <button class="btn-primary" onclick="loadUsers()">Recargar</button>
+          </div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Alta</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody">
+            <tr><td colspan="5" class="empty">Cargando…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Vista: detalle del usuario -->
+    <div id="user-detail" class="hidden">
+      <button class="detail-back" onclick="closeUserDetail()">&#8592; Volver</button>
+      <div class="detail-card">
+        <h3 style="color:var(--primary);margin-bottom:1.5rem">Editar usuario</h3>
+        <div class="form-grid">
+          <label class="form-label">ID</label>
+          <input type="text" id="user-edit-id" class="form-input" disabled>
+
+          <label class="form-label">Nombre</label>
+          <input type="text" id="user-edit-name" class="form-input">
+
+          <label class="form-label">Email</label>
+          <input type="email" id="user-edit-email" class="form-input">
+
+          <label class="form-label">Rol</label>
+          <select id="user-edit-role" class="form-input">
+            <option value="USER">Usuario</option>
+            <option value="ADMIN">Administrador</option>
+          </select>
+
+          <label class="form-label">Nueva contraseña</label>
+          <input type="password" id="user-edit-password" class="form-input" placeholder="Dejar en blanco para mantener la actual">
+
+          <label class="form-label">Alta</label>
+          <div class="detail-value" id="user-edit-createdat"></div>
+        </div>
+        <div class="detail-actions">
+          <button class="btn-success" id="user-save-btn">Guardar cambios</button>
+          <button class="btn-danger"  id="user-delete-btn">Eliminar usuario</button>
+        </div>
+      </div>
+    </div>
+  </main>
+
   <!-- Modal confirmación borrado -->
   <div id="confirm-modal" class="modal-overlay hidden">
     <div class="modal-box">
@@ -333,6 +527,9 @@
 const API = window.location.origin;
 let token = localStorage.getItem('matchbar_admin_token');
 let allIncidents = [];
+let allBarsData = [];
+let allUsersData = [];
+const tabLoaded = {};
 
 if (token) showDashboard();
 
@@ -375,16 +572,25 @@ function showDashboard() {
   document.getElementById('dashboard-view').classList.remove('hidden');
   document.getElementById('user-name').textContent =
     localStorage.getItem('matchbar_admin_name') || 'Admin';
+  tabLoaded['bars'] = true;
+  tabLoaded['incidents'] = true;
   loadPending();
   loadIncidents();
 }
 
 function switchTab(tab) {
-  const isBars = tab === 'bars';
-  document.getElementById('tab-bars').classList.toggle('hidden', !isBars);
-  document.getElementById('tab-incidents').classList.toggle('hidden', isBars);
-  document.getElementById('tab-bars-btn').classList.toggle('active', isBars);
-  document.getElementById('tab-incidents-btn').classList.toggle('active', !isBars);
+  ['bars', 'incidents', 'all-bars', 'users'].forEach(t => {
+    document.getElementById(`tab-${t}`).classList.toggle('hidden', t !== tab);
+    document.getElementById(`tab-${t}-btn`).classList.toggle('active', t === tab);
+  });
+  if (tab === 'bars')     closePendingDetail();
+  if (tab === 'all-bars') closeBarDetail();
+  if (tab === 'users')    closeUserDetail();
+  if (!tabLoaded[tab]) {
+    tabLoaded[tab] = true;
+    if (tab === 'all-bars') loadAllBars();
+    if (tab === 'users') loadUsers();
+  }
 }
 
 async function api(path, options = {}) {
@@ -404,41 +610,40 @@ async function api(path, options = {}) {
 
 /* ── Bares pendientes ───────────────────────────────────── */
 
+let allPendingData = [];
+
 async function loadPending() {
   try {
     const [bars, stats] = await Promise.all([
       api('/api/admin/bars/pending'),
       api('/api/admin/bars/stats')
     ]);
+    allPendingData = bars;
     const tbody = document.getElementById('pending-tbody');
     document.getElementById('stat-pending').textContent  = stats.pending;
     document.getElementById('stat-approved').textContent = stats.approved;
     document.getElementById('stat-rejected').textContent = stats.rejected;
 
     if (bars.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="empty">No hay bares pendientes</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay bares pendientes</td></tr>';
       return;
     }
     tbody.innerHTML = bars.map(b => {
       const phoneCell = b.ownerPhone
-        ? `<a href="tel:${escapeHtml(b.ownerPhone)}" style="color:var(--primary-light);text-decoration:none">${escapeHtml(b.ownerPhone)}</a>`
+        ? escapeHtml(b.ownerPhone)
         : '<span class="doc-none">—</span>';
       const docCell = b.licenseDocUrl
-        ? `<button class="doc-link" onclick="viewLicense('${b.id}')">📄 ${escapeHtml(b.licenseDocFilename || 'Ver licencia')}</button>`
+        ? `📄 ${escapeHtml(b.licenseDocFilename || 'Ver licencia')}`
         : '<span class="doc-none">Sin documentación</span>';
       return `
-        <tr>
-          <td style="font-size:0.75rem;color:var(--muted)">${b.id}</td>
+        <tr class="clickable" onclick="openPendingDetail('${escapeHtml(b.id)}')">
+          <td style="font-size:0.75rem;color:var(--muted)">${escapeHtml(b.id)}</td>
           <td><strong>${escapeHtml(b.name)}</strong></td>
           <td>${escapeHtml(b.address)}</td>
           <td>${escapeHtml(b.ownerName || '—')}<br>
               <span style="color:var(--muted);font-size:0.8rem">${escapeHtml(b.ownerEmail || '')}</span></td>
           <td>${phoneCell}</td>
           <td>${docCell}</td>
-          <td class="actions">
-            <button class="btn-success" onclick="approve('${b.id}')">Aprobar</button>
-            <button class="btn-danger"  onclick="reject('${b.id}')">Rechazar</button>
-          </td>
         </tr>`;
     }).join('');
   } catch (e) {
@@ -447,10 +652,57 @@ async function loadPending() {
   }
 }
 
+function openPendingDetail(id) {
+  const b = allPendingData.find(x => x.id === id);
+  if (!b) return;
+
+  const phoneCell = b.ownerPhone
+    ? `<a href="tel:${escapeHtml(b.ownerPhone)}" style="color:var(--primary-light);text-decoration:none">${escapeHtml(b.ownerPhone)}</a>`
+    : '<span class="doc-none">—</span>';
+  const docCell = b.licenseDocUrl
+    ? `<button class="doc-link" onclick="viewLicense('${escapeHtml(b.id)}')">📄 ${escapeHtml(b.licenseDocFilename || 'Ver licencia')}</button>`
+    : '<span class="doc-none">Sin documentación</span>';
+
+  document.getElementById('pending-detail-grid').innerHTML = `
+    <span class="detail-label">ID</span>
+    <span class="detail-value" style="font-size:0.8rem;color:var(--muted)">${escapeHtml(b.id)}</span>
+
+    <span class="detail-label">Nombre</span>
+    <span class="detail-value"><strong>${escapeHtml(b.name)}</strong></span>
+
+    <span class="detail-label">Dirección</span>
+    <span class="detail-value">${escapeHtml(b.address)}</span>
+
+    <span class="detail-label">Dueño</span>
+    <span class="detail-value">
+      <strong>${escapeHtml(b.ownerName || '—')}</strong>
+      <br><span style="color:var(--muted);font-size:0.85rem">${escapeHtml(b.ownerEmail || '')}</span>
+    </span>
+
+    <span class="detail-label">Contacto tlf.</span>
+    <span class="detail-value">${phoneCell}</span>
+
+    <span class="detail-label">Documentación</span>
+    <span class="detail-value">${docCell}</span>
+  `;
+
+  document.getElementById('pending-approve-btn').onclick = () => approve(id);
+  document.getElementById('pending-reject-btn').onclick  = () => reject(id);
+
+  document.getElementById('pending-list').classList.add('hidden');
+  document.getElementById('pending-detail').classList.remove('hidden');
+}
+
+function closePendingDetail() {
+  document.getElementById('pending-detail').classList.add('hidden');
+  document.getElementById('pending-list').classList.remove('hidden');
+}
+
 async function approve(id) {
   try {
     await api(`/api/admin/bars/${id}/approve`, {method: 'PATCH'});
     showToast('Bar aceptado correctamente', 'success');
+    closePendingDetail();
     loadPending();
   } catch (e) {
     console.error(e);
@@ -462,6 +714,7 @@ async function reject(id) {
   try {
     await api(`/api/admin/bars/${id}/reject`, {method: 'PATCH'});
     showToast('Eliminada la solicitud', 'error');
+    closePendingDetail();
     loadPending();
   } catch (e) {
     console.error(e);
@@ -660,10 +913,250 @@ async function deleteIncident(id) {
     updateIncidentStats();
     renderIncidents();
     closeIncidentDetail();
-    showToast('Incidencia eliminada correctamente', 'success');
+    showToast('Incidencia eliminada correctamente', 'error');
   } catch (e) {
     console.error(e);
     showToast('Error al eliminar la incidencia', 'error');
+  }
+}
+
+/* ── Bares (aprobados) ───────────────────────────────────── */
+
+async function loadAllBars() {
+  try {
+    allBarsData = await api('/api/admin/bars/all');
+    document.getElementById('stat-allbars-approved').textContent = allBarsData.length;
+    renderAllBars();
+  } catch (e) {
+    console.error(e);
+    showToast('Error al cargar los bares', 'error');
+  }
+}
+
+function renderAllBars() {
+  const tbody = document.getElementById('all-bars-tbody');
+
+  if (allBarsData.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No hay bares aprobados</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = allBarsData.map(b => {
+    const ownerCell = b.ownerName
+      ? `${escapeHtml(b.ownerName)}<br><span style="color:var(--muted);font-size:0.8rem">${escapeHtml(b.ownerEmail || '')}</span>`
+      : '<span style="color:var(--muted);font-size:0.8rem">—</span>';
+    const rating = b.averageRating != null ? `⭐ ${b.averageRating.toFixed(1)}` : '—';
+    const date = b.createdAt
+      ? new Date(b.createdAt).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'})
+      : '—';
+    return `
+      <tr class="clickable" onclick="openBarDetail('${escapeHtml(b.id)}')">
+        <td style="font-size:0.75rem;color:var(--muted)">${escapeHtml(b.id)}</td>
+        <td><strong>${escapeHtml(b.name)}</strong></td>
+        <td>${escapeHtml(b.address || '—')}</td>
+        <td>${ownerCell}</td>
+        <td style="white-space:nowrap">${rating}</td>
+        <td style="white-space:nowrap;font-size:0.85rem">${date}</td>
+      </tr>`;
+  }).join('');
+}
+
+function openBarDetail(id) {
+  const b = allBarsData.find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('bar-edit-id').value = b.id;
+  document.getElementById('bar-edit-name').value = b.name || '';
+  document.getElementById('bar-edit-description').value = b.description || '';
+  document.getElementById('bar-edit-address').value = b.address || '';
+  document.getElementById('bar-edit-latitude').value = b.latitude != null ? b.latitude : '';
+  document.getElementById('bar-edit-longitude').value = b.longitude != null ? b.longitude : '';
+  document.getElementById('bar-edit-phone').value = b.ownerPhone || '';
+  document.getElementById('bar-edit-photo').value = b.photoUrl || '';
+  document.getElementById('bar-edit-owner').innerHTML = b.ownerName
+    ? `<strong>${escapeHtml(b.ownerName)}</strong><br><span style="color:var(--muted);font-size:0.85rem">${escapeHtml(b.ownerEmail || '')}</span>`
+    : '<span style="color:var(--muted)">—</span>';
+  document.getElementById('bar-edit-rating').textContent =
+    b.averageRating != null ? `⭐ ${b.averageRating.toFixed(1)}` : '—';
+  document.getElementById('bar-edit-createdat').textContent = b.createdAt
+    ? new Date(b.createdAt).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
+    : '—';
+
+  document.getElementById('bar-save-btn').onclick   = () => saveBar(id);
+  document.getElementById('bar-delete-btn').onclick = () => deleteBar(id);
+
+  document.getElementById('all-bars-list').classList.add('hidden');
+  document.getElementById('bar-detail').classList.remove('hidden');
+}
+
+function closeBarDetail() {
+  document.getElementById('bar-detail').classList.add('hidden');
+  document.getElementById('all-bars-list').classList.remove('hidden');
+}
+
+async function saveBar(id) {
+  const payload = {
+    name: document.getElementById('bar-edit-name').value.trim(),
+    description: document.getElementById('bar-edit-description').value.trim() || null,
+    address: document.getElementById('bar-edit-address').value.trim(),
+    latitude: parseFloat(document.getElementById('bar-edit-latitude').value),
+    longitude: parseFloat(document.getElementById('bar-edit-longitude').value),
+    ownerPhone: document.getElementById('bar-edit-phone').value.trim() || null,
+    photoUrl: document.getElementById('bar-edit-photo').value.trim() || null
+  };
+  if (!payload.name || !payload.address || Number.isNaN(payload.latitude) || Number.isNaN(payload.longitude)) {
+    showToast('Nombre, dirección, latitud y longitud son obligatorios', 'error');
+    return;
+  }
+  try {
+    const updated = await api(`/api/admin/bars/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    const idx = allBarsData.findIndex(b => b.id === id);
+    if (idx !== -1) allBarsData[idx] = updated;
+    showToast('Cambios guardados', 'success');
+    renderAllBars();
+  } catch (e) {
+    console.error(e);
+    showToast('Error al guardar los cambios', 'error');
+  }
+}
+
+async function deleteBar(id) {
+  if (!confirm('¿Eliminar definitivamente este bar? Esta acción no se puede deshacer.')) return;
+  try {
+    await api(`/api/admin/bars/${id}`, {method: 'DELETE'});
+    allBarsData = allBarsData.filter(b => b.id !== id);
+    document.getElementById('stat-allbars-approved').textContent = allBarsData.length;
+    renderAllBars();
+    closeBarDetail();
+    showToast('Bar eliminado', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Error al eliminar el bar', 'error');
+  }
+}
+
+/* ── Usuarios ─────────────────────────────────────────────── */
+
+async function loadUsers() {
+  try {
+    allUsersData = await api('/api/admin/users');
+    updateUsersStats();
+    renderUsers();
+  } catch (e) {
+    console.error(e);
+    showToast('Error al cargar los usuarios', 'error');
+  }
+}
+
+function updateUsersStats() {
+  const users  = allUsersData.filter(u => u.role === 'USER').length;
+  const admins = allUsersData.filter(u => u.role === 'ADMIN').length;
+  document.getElementById('stat-users-total').textContent = allUsersData.length;
+  document.getElementById('stat-users-user').textContent  = users;
+  document.getElementById('stat-users-admin').textContent = admins;
+}
+
+function renderUsers() {
+  const filter = document.getElementById('user-role-filter').value;
+  const list = filter === 'ALL' ? allUsersData : allUsersData.filter(u => u.role === filter);
+  const tbody = document.getElementById('users-tbody');
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">No hay usuarios</td></tr>';
+    return;
+  }
+
+  const roleMap = {
+    USER:  ['badge-user',  'Usuario'],
+    ADMIN: ['badge-admin', 'Admin']
+  };
+
+  tbody.innerHTML = list.map(u => {
+    const [roleCss, roleLabel] = roleMap[u.role] || ['', u.role];
+    const date = u.createdAt
+      ? new Date(u.createdAt).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'})
+      : '—';
+    return `
+      <tr class="clickable" onclick="openUserDetail('${escapeHtml(u.id)}')">
+        <td style="font-size:0.75rem;color:var(--muted)">${escapeHtml(u.id)}</td>
+        <td><strong>${escapeHtml(u.name || '—')}</strong></td>
+        <td>${escapeHtml(u.email)}</td>
+        <td><span class="badge ${roleCss}">${roleLabel}</span></td>
+        <td style="white-space:nowrap;font-size:0.85rem">${date}</td>
+      </tr>`;
+  }).join('');
+}
+
+function openUserDetail(id) {
+  const u = allUsersData.find(x => x.id === id);
+  if (!u) return;
+  document.getElementById('user-edit-id').value = u.id;
+  document.getElementById('user-edit-name').value = u.name || '';
+  document.getElementById('user-edit-email').value = u.email || '';
+  document.getElementById('user-edit-role').value = u.role || 'USER';
+  document.getElementById('user-edit-password').value = '';
+  document.getElementById('user-edit-createdat').textContent = u.createdAt
+    ? new Date(u.createdAt).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
+    : '—';
+
+  document.getElementById('user-save-btn').onclick   = () => saveUser(id);
+  document.getElementById('user-delete-btn').onclick = () => deleteUser(id);
+
+  document.getElementById('users-list').classList.add('hidden');
+  document.getElementById('user-detail').classList.remove('hidden');
+}
+
+function closeUserDetail() {
+  document.getElementById('user-detail').classList.add('hidden');
+  document.getElementById('users-list').classList.remove('hidden');
+}
+
+async function saveUser(id) {
+  const password = document.getElementById('user-edit-password').value;
+  const payload = {
+    name: document.getElementById('user-edit-name').value.trim(),
+    email: document.getElementById('user-edit-email').value.trim(),
+    role: document.getElementById('user-edit-role').value,
+    password: password ? password : null
+  };
+  if (!payload.name || !payload.email) {
+    showToast('Nombre y email son obligatorios', 'error');
+    return;
+  }
+  if (password && password.length < 6) {
+    showToast('La contraseña debe tener al menos 6 caracteres', 'error');
+    return;
+  }
+  try {
+    const updated = await api(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    const idx = allUsersData.findIndex(u => u.id === id);
+    if (idx !== -1) allUsersData[idx] = updated;
+    updateUsersStats();
+    renderUsers();
+    showToast('Cambios guardados', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Error al guardar los cambios', 'error');
+  }
+}
+
+async function deleteUser(id) {
+  if (!confirm('¿Eliminar definitivamente este usuario? Esta acción no se puede deshacer.')) return;
+  try {
+    await api(`/api/admin/users/${id}`, {method: 'DELETE'});
+    allUsersData = allUsersData.filter(u => u.id !== id);
+    updateUsersStats();
+    renderUsers();
+    closeUserDetail();
+    showToast('Usuario eliminado', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Error al eliminar el usuario', 'error');
   }
 }
 

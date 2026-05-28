@@ -1,6 +1,8 @@
 package com.matchbar.service;
 
+import com.matchbar.dto.request.BarAdminUpdateRequest;
 import com.matchbar.dto.request.BarUpsertRequest;
+import com.matchbar.dto.response.BarAdminResponse;
 import com.matchbar.dto.response.BarResponse;
 import com.matchbar.dto.response.PendingBarResponse;
 import com.matchbar.entity.Bar;
@@ -134,6 +136,60 @@ public class BarService {
         bar.setLicenseDocFilename(file.getOriginalFilename());
         barRepository.save(bar);
         return file.getOriginalFilename();
+    }
+
+    public List<BarAdminResponse> listAll() {
+        List<Bar> bars = barRepository.findByStatus(Bar.Status.APPROVED);
+        bars.sort(java.util.Comparator.comparing(Bar::getCreatedAt,
+                java.util.Comparator.nullsLast(java.util.Comparator.reverseOrder())));
+        Set<String> ownerIds = bars.stream().map(Bar::getUserId).collect(Collectors.toSet());
+        Map<String, User> ownersById = userRepository.findAllById(ownerIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+        return bars.stream().map(b -> toAdminResponse(b, ownersById.get(b.getUserId()))).collect(Collectors.toList());
+    }
+
+    public BarAdminResponse getAdminDetail(String barId) {
+        Bar bar = barRepository.findById(barId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
+        User owner = bar.getUserId() != null ? userRepository.findById(bar.getUserId()).orElse(null) : null;
+        return toAdminResponse(bar, owner);
+    }
+
+    public BarAdminResponse adminUpdate(String barId, BarAdminUpdateRequest req) {
+        Bar bar = barRepository.findById(barId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
+        bar.setName(req.name());
+        bar.setDescription(req.description());
+        bar.setAddress(req.address());
+        bar.setLatitude(req.latitude());
+        bar.setLongitude(req.longitude());
+        bar.setLocation(new GeoJsonPoint(req.longitude().doubleValue(), req.latitude().doubleValue()));
+        bar.setOwnerPhone(req.ownerPhone());
+        bar.setPhotoUrl(req.photoUrl());
+        bar = barRepository.save(bar);
+        User owner = bar.getUserId() != null ? userRepository.findById(bar.getUserId()).orElse(null) : null;
+        return toAdminResponse(bar, owner);
+    }
+
+    public void adminDelete(String barId, LicenseDocService licenseDocService) {
+        Bar bar = barRepository.findById(barId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
+        if (bar.getLicenseDocFileId() != null) {
+            licenseDocService.delete(bar.getLicenseDocFileId());
+        }
+        barRepository.delete(bar);
+    }
+
+    private BarAdminResponse toAdminResponse(Bar b, User owner) {
+        return new BarAdminResponse(
+                b.getId(), b.getUserId(), b.getName(), b.getDescription(), b.getAddress(),
+                b.getLatitude(), b.getLongitude(), b.getOwnerPhone(), b.getPhotoUrl(),
+                b.getLicenseDocFilename(), b.getStatus(),
+                owner != null ? owner.getName() : null,
+                owner != null ? owner.getEmail() : null,
+                computeAverage(b.getId()),
+                b.getCreatedAt()
+        );
     }
 
     public BarResponse setStatus(String barId, Bar.Status status) {

@@ -6,3 +6,4 @@ docker compose up
 
 #URL
 http://localhost:8080/admin.html
+http://localhost:8080/ui-swagger.html
