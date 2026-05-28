@@ -43,11 +43,11 @@ class AdminViewModel(private val api: MatchBarApi) : ViewModel() {
             .onFailure { e -> _state.update { it.copy(loading = false, error = e.userMessage()) } }
     }
 
-    fun approve(id: Long) = viewModelScope.launch {
+    fun approve(id: String) = viewModelScope.launch {
         runCatching { api.approveBar(id) }.onSuccess { load() }
     }
 
-    fun reject(id: Long) = viewModelScope.launch {
+    fun reject(id: String) = viewModelScope.launch {
         runCatching { api.rejectBar(id) }.onSuccess { load() }
     }
 }

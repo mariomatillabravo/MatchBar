@@ -30,7 +30,7 @@ class BarDetailViewModel(
     private val _state = MutableStateFlow(BarDetailUiState())
     val state: StateFlow<BarDetailUiState> = _state.asStateFlow()
 
-    fun load(barId: Long) = viewModelScope.launch {
+    fun load(barId: String) = viewModelScope.launch {
         _state.update { it.copy(loading = true, error = null) }
         runCatching {
             val bar = api.bar(barId)

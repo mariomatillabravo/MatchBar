@@ -6,15 +6,15 @@ object Routes {
 
     const val MATCHES = "matches"
     const val MATCH_DETAIL = "match/{matchId}"
-    fun matchDetail(matchId: Long) = "match/$matchId"
+    fun matchDetail(matchId: String) = "match/$matchId"
 
     const val BAR_DETAIL = "bar/{barId}"
-    fun barDetail(barId: Long) = "bar/$barId"
+    fun barDetail(barId: String) = "bar/$barId"
 
     const val FAVORITES = "favorites"
     const val PROFILE = "profile"
     const val MAP = "map?matchId={matchId}"
-    fun map(matchId: Long?) = if (matchId == null) "map?matchId=" else "map?matchId=$matchId"
+    fun map(matchId: String?) = if (matchId == null) "map?matchId=" else "map?matchId=$matchId"
 
     // Bar (rol BAR)
     const val MY_BAR = "my-bar"

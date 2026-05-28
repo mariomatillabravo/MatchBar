@@ -22,7 +22,7 @@ import com.matchbar.app.ui.common.LoadingBox
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NearbyBarsScreen(
-    matchId: Long?,
+    matchId: String?,
     vmFactory: androidx.lifecycle.ViewModelProvider.Factory,
     onBarClick: (Bar) -> Unit,
     onBack: () -> Unit

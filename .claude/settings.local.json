@@ -9,7 +9,9 @@
       "PowerShell(docker compose up --build -d 2>&1)",
       "PowerShell($login = Invoke-RestMethod -Uri \"http://localhost:8080/api/auth/login\" -Method Post -ContentType \"application/json\" -Body '{\"email\":\"admin@matchbar.com\",\"password\":\"password123\"}'; $token = $login.token; $pending = Invoke-RestMethod -Uri \"http://localhost:8080/api/admin/bars/pending\" -Headers @{Authorization=\"Bearer $token\"}; $first = $pending[0]; $pdfPath = \"$env:TEMP\\\\test-license.pdf\"; Invoke-WebRequest -Uri \"http://localhost:8080$\\($first.licenseDocUrl\\)\" -Headers @{Authorization=\"Bearer $token\"} -OutFile $pdfPath; $bytes = [IO.File]::ReadAllBytes\\($pdfPath\\); $header = -join \\($bytes[0..4] | ForEach-Object { [char]$_ }\\); $tail = -join \\($bytes[\\($bytes.Length-5\\)..\\($bytes.Length-1\\)] | ForEach-Object { [char]$_ }\\); Write-Output \"PDF size: $\\($bytes.Length\\) bytes\"; Write-Output \"Header: '$header' \\(expect %PDF-\\)\"; Write-Output \"Tail: '$tail' \\(expect %%EOF\\)\")",
       "PowerShell(docker compose up --build -d api 2>&1)",
-      "PowerShell(docker compose ps)"
+      "PowerShell(docker compose ps)",
+      "Bash(Get-ChildItem -Path \"C:\\\\CLASE\\\\matchbarAPP\\\\MatchBar\" -Force)",
+      "Bash(Select-Object Name, FullName)"
     ]
   }
 }

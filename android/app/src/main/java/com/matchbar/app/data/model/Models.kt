@@ -18,7 +18,7 @@ data class RegisterRequest(
 @Serializable
 data class AuthResponse(
     val token: String,
-    val userId: Long,
+    val userId: String,
     val email: String,
     val name: String,
     val role: Role
@@ -26,7 +26,7 @@ data class AuthResponse(
 
 @Serializable
 data class Bar(
-    val id: Long,
+    val id: String,
     val name: String,
     val description: String? = null,
     val address: String,
@@ -53,13 +53,13 @@ data class BarUpsertRequest(
 
 @Serializable
 data class Match(
-    val id: Long,
-    val competitionId: Long,
+    val id: String,
+    val competitionId: String,
     val competitionName: String,
-    val homeTeamId: Long,
+    val homeTeamId: String,
     val homeTeamName: String,
     val homeTeamLogo: String? = null,
-    val awayTeamId: Long,
+    val awayTeamId: String,
     val awayTeamName: String,
     val awayTeamLogo: String? = null,
     val kickoffAt: String
@@ -67,8 +67,8 @@ data class Match(
 
 @Serializable
 data class Review(
-    val id: Long,
-    val userId: Long,
+    val id: String,
+    val userId: String,
     val userName: String,
     val ratingAtmosphere: Int,
     val ratingFood: Int,
@@ -88,7 +88,7 @@ data class ReviewRequest(
 
 @Serializable
 data class Competition(
-    val id: Long,
+    val id: String,
     val name: String,
     val country: String? = null,
     val logoUrl: String? = null
@@ -96,7 +96,7 @@ data class Competition(
 
 @Serializable
 data class Team(
-    val id: Long,
+    val id: String,
     val name: String,
     val logoUrl: String? = null
 )

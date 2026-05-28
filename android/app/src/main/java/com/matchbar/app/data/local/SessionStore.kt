@@ -22,7 +22,7 @@ class SessionStore(private val context: Context) {
 
     data class Session(
         val token: String,
-        val userId: Long,
+        val userId: String,
         val email: String,
         val name: String,
         val role: Role
@@ -33,17 +33,17 @@ class SessionStore(private val context: Context) {
         val role = prefs[KEY_ROLE]?.let { runCatching { Role.valueOf(it) }.getOrNull() } ?: return@map null
         Session(
             token = token,
-            userId = prefs[KEY_USER_ID]?.toLongOrNull() ?: 0,
+            userId = prefs[KEY_USER_ID].orEmpty(),
             email = prefs[KEY_EMAIL].orEmpty(),
             name = prefs[KEY_NAME].orEmpty(),
             role = role
         )
     }
 
-    suspend fun save(token: String, userId: Long, email: String, name: String, role: Role) {
+    suspend fun save(token: String, userId: String, email: String, name: String, role: Role) {
         context.dataStore.edit { prefs ->
             prefs[KEY_TOKEN] = token
-            prefs[KEY_USER_ID] = userId.toString()
+            prefs[KEY_USER_ID] = userId
             prefs[KEY_EMAIL] = email
             prefs[KEY_NAME] = name
             prefs[KEY_ROLE] = role.name

@@ -17,8 +17,8 @@ data class MatchesUiState(
     val matches: List<Match> = emptyList(),
     val competitions: List<Competition> = emptyList(),
     val teams: List<Team> = emptyList(),
-    val selectedCompetitionId: Long? = null,
-    val selectedTeamId: Long? = null,
+    val selectedCompetitionId: String? = null,
+    val selectedTeamId: String? = null,
     val loading: Boolean = false,
     val error: String? = null
 )
@@ -47,12 +47,12 @@ class MatchesViewModel(private val api: MatchBarApi) : ViewModel() {
         }
     }
 
-    fun selectCompetition(id: Long?) {
+    fun selectCompetition(id: String?) {
         _state.update { it.copy(selectedCompetitionId = id, selectedTeamId = null) }
         load()
     }
 
-    fun selectTeam(id: Long?) {
+    fun selectTeam(id: String?) {
         _state.update { it.copy(selectedTeamId = id) }
         load()
     }

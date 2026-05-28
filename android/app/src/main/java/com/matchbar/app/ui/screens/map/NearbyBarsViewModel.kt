@@ -20,7 +20,7 @@ data class NearbyUiState(
     val bars: List<Bar> = emptyList(),
     val userLat: Double? = null,
     val userLng: Double? = null,
-    val matchId: Long? = null,
+    val matchId: String? = null,
     val loading: Boolean = false,
     val error: String? = null
 )
@@ -33,7 +33,7 @@ class NearbyBarsViewModel(
     private val _state = MutableStateFlow(NearbyUiState())
     val state: StateFlow<NearbyUiState> = _state.asStateFlow()
 
-    fun init(matchId: Long?) {
+    fun init(matchId: String?) {
         _state.update { it.copy(matchId = matchId) }
         loadLocationAndBars()
     }

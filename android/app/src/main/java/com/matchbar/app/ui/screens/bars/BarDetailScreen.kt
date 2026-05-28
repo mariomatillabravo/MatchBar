@@ -26,7 +26,7 @@ import com.matchbar.app.ui.common.LoadingBox
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarDetailScreen(
-    barId: Long,
+    barId: String,
     currentRole: Role,
     vmFactory: androidx.lifecycle.ViewModelProvider.Factory,
     onBack: () -> Unit

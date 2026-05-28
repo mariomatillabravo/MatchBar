@@ -96,8 +96,7 @@ fun AppNavigation(app: MatchBarApp) {
                     type = NavType.StringType; defaultValue = ""; nullable = false
                 })
             ) { backStack ->
-                val matchIdArg = backStack.arguments?.getString("matchId").orEmpty()
-                val matchId = matchIdArg.toLongOrNull()
+                val matchId = backStack.arguments?.getString("matchId")?.ifEmpty { null }
                 NearbyBarsScreen(
                     matchId = matchId,
                     vmFactory = nearbyFactory,
@@ -107,9 +106,9 @@ fun AppNavigation(app: MatchBarApp) {
             }
             composable(
                 route = Routes.BAR_DETAIL,
-                arguments = listOf(navArgument("barId") { type = NavType.LongType })
+                arguments = listOf(navArgument("barId") { type = NavType.StringType })
             ) { backStack ->
-                val barId = backStack.arguments?.getLong("barId") ?: return@composable
+                val barId = backStack.arguments?.getString("barId") ?: return@composable
                 BarDetailScreen(
                     barId = barId,
                     currentRole = session.role,
