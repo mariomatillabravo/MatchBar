@@ -15,6 +15,14 @@ matchbar:
     secret: ${JWT_SECRET:cambia-esta-clave-en-produccion-debe-ser-larga-min-256-bits-1234567890}
     expiration-ms: 3600000  # 1 hora
 
+  football:
+    enabled: true
+    api-key: 5f32243c96fe49c9aefcf908cd94c095
+    base-url: https://api.football-data.org/v4
+    competition-codes: PD,PL,CL,BL1,SA,WC
+    sync-days-ahead: 15
+    sync-interval-ms: 43200000  # 12 horas
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

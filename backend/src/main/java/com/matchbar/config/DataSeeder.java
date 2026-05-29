@@ -29,10 +29,14 @@ public class DataSeeder implements ApplicationRunner {
     private final IncidentRepository incidentRepository;
     private final PasswordEncoder passwordEncoder;
     private final LicenseDocService licenseDocService;
+    private final FootballProperties footballProperties;
 
     @Override
     public void run(ApplicationArguments args) {
-        if (userRepository.count() > 0) return;
+        if (userRepository.count() > 0) {
+            cleanFakeFootballDataIfNeeded();
+            return;
+        }
 
         String hash = passwordEncoder.encode("password123");
 
@@ -114,35 +118,37 @@ public class DataSeeder implements ApplicationRunner {
                 .location(new org.springframework.data.mongodb.core.geo.GeoJsonPoint(-3.6760, 40.4370))
                 .status(Bar.Status.REJECTED).build());
 
-        // ── Competiciones y equipos ─────────────────────────────────────────────
-        Competition laliga    = competitionRepository.save(Competition.builder().name("LaLiga").country("España").build());
-        Competition premier   = competitionRepository.save(Competition.builder().name("Premier League").country("Inglaterra").build());
-        Competition champions = competitionRepository.save(Competition.builder().name("Champions League").country("Europa").build());
+        // ── Competiciones, equipos, partidos y retransmisiones ─────────────────
+        // Solo se siembran datos fake cuando la sincronización con API externa está deshabilitada.
+        // Si football.enabled=true, FootballSyncService los carga via ApplicationReadyEvent.
+        if (!footballProperties.isEnabled()) {
+            Competition laliga    = competitionRepository.save(Competition.builder().name("LaLiga").country("España").build());
+            Competition premier   = competitionRepository.save(Competition.builder().name("Premier League").country("Inglaterra").build());
+            Competition champions = competitionRepository.save(Competition.builder().name("Champions League").country("Europa").build());
 
-        Team madrid   = teamRepository.save(Team.builder().name("Real Madrid").competitionId(laliga.getId()).build());
-        Team barca    = teamRepository.save(Team.builder().name("FC Barcelona").competitionId(laliga.getId()).build());
-        Team atletico = teamRepository.save(Team.builder().name("Atlético de Madrid").competitionId(laliga.getId()).build());
-        Team sevilla  = teamRepository.save(Team.builder().name("Sevilla FC").competitionId(laliga.getId()).build());
-        Team city     = teamRepository.save(Team.builder().name("Manchester City").competitionId(premier.getId()).build());
-        Team liverpool = teamRepository.save(Team.builder().name("Liverpool FC").competitionId(premier.getId()).build());
-        teamRepository.save(Team.builder().name("Arsenal FC").competitionId(premier.getId()).build());
+            Team madrid   = teamRepository.save(Team.builder().name("Real Madrid").competitionId(laliga.getId()).build());
+            Team barca    = teamRepository.save(Team.builder().name("FC Barcelona").competitionId(laliga.getId()).build());
+            Team atletico = teamRepository.save(Team.builder().name("Atlético de Madrid").competitionId(laliga.getId()).build());
+            Team sevilla  = teamRepository.save(Team.builder().name("Sevilla FC").competitionId(laliga.getId()).build());
+            Team city     = teamRepository.save(Team.builder().name("Manchester City").competitionId(premier.getId()).build());
+            Team liverpool = teamRepository.save(Team.builder().name("Liverpool FC").competitionId(premier.getId()).build());
+            teamRepository.save(Team.builder().name("Arsenal FC").competitionId(premier.getId()).build());
 
-        // ── Partidos ────────────────────────────────────────────────────────────
-        Instant now = Instant.now();
-        Match m1 = matchRepository.save(Match.builder().competition(laliga).homeTeam(madrid).awayTeam(barca).kickoffAt(now.plus(1, ChronoUnit.DAYS)).build());
-        Match m2 = matchRepository.save(Match.builder().competition(laliga).homeTeam(atletico).awayTeam(sevilla).kickoffAt(now.plus(2, ChronoUnit.DAYS)).build());
-        Match m3 = matchRepository.save(Match.builder().competition(premier).homeTeam(city).awayTeam(liverpool).kickoffAt(now.plus(3, ChronoUnit.DAYS)).build());
-        Match m4 = matchRepository.save(Match.builder().competition(champions).homeTeam(madrid).awayTeam(city).kickoffAt(now.plus(5, ChronoUnit.DAYS)).build());
-        Match m5 = matchRepository.save(Match.builder().competition(laliga).homeTeam(barca).awayTeam(atletico).kickoffAt(now.plus(7, ChronoUnit.DAYS)).build());
+            Instant now = Instant.now();
+            Match m1 = matchRepository.save(Match.builder().competition(laliga).homeTeam(madrid).awayTeam(barca).kickoffAt(now.plus(1, ChronoUnit.DAYS)).build());
+            Match m2 = matchRepository.save(Match.builder().competition(laliga).homeTeam(atletico).awayTeam(sevilla).kickoffAt(now.plus(2, ChronoUnit.DAYS)).build());
+            Match m3 = matchRepository.save(Match.builder().competition(premier).homeTeam(city).awayTeam(liverpool).kickoffAt(now.plus(3, ChronoUnit.DAYS)).build());
+            Match m4 = matchRepository.save(Match.builder().competition(champions).homeTeam(madrid).awayTeam(city).kickoffAt(now.plus(5, ChronoUnit.DAYS)).build());
+            Match m5 = matchRepository.save(Match.builder().competition(laliga).homeTeam(barca).awayTeam(atletico).kickoffAt(now.plus(7, ChronoUnit.DAYS)).build());
 
-        // ── Retransmisiones ─────────────────────────────────────────────────────
-        broadcastRepository.saveAll(List.of(
-                Broadcast.builder().barId(rincon.getId()).matchId(m1.getId()).build(),
-                Broadcast.builder().barId(centenario.getId()).matchId(m1.getId()).build(),
-                Broadcast.builder().barId(rincon.getId()).matchId(m4.getId()).build(),
-                Broadcast.builder().barId(centenario.getId()).matchId(m3.getId()).build(),
-                Broadcast.builder().barId(rincon.getId()).matchId(m5.getId()).build()
-        ));
+            broadcastRepository.saveAll(List.of(
+                    Broadcast.builder().barId(rincon.getId()).matchId(m1.getId()).build(),
+                    Broadcast.builder().barId(centenario.getId()).matchId(m1.getId()).build(),
+                    Broadcast.builder().barId(rincon.getId()).matchId(m4.getId()).build(),
+                    Broadcast.builder().barId(centenario.getId()).matchId(m3.getId()).build(),
+                    Broadcast.builder().barId(rincon.getId()).matchId(m5.getId()).build()
+            ));
+        }
 
         // ── Reseñas ─────────────────────────────────────────────────────────────
         reviewRepository.saveAll(List.of(
@@ -161,6 +167,7 @@ public class DataSeeder implements ApplicationRunner {
         ));
 
         // ── Incidencias (pestaña Incidencias del panel admin) ───────────────────
+        Instant now         = Instant.now();
         Instant twoDaysAgo  = now.minus(2, ChronoUnit.DAYS);
         Instant fourDaysAgo = now.minus(4, ChronoUnit.DAYS);
         Instant sixDaysAgo  = now.minus(6, ChronoUnit.DAYS);
@@ -241,5 +248,17 @@ public class DataSeeder implements ApplicationRunner {
                 .licenseDocFileId(fileId)
                 .licenseDocFilename(filename)
                 .status(Bar.Status.PENDING).build());
+    }
+
+    private void cleanFakeFootballDataIfNeeded() {
+        if (!footballProperties.isEnabled()) return;
+        boolean hasFakeData = competitionRepository.findAll().stream()
+                .anyMatch(c -> c.getExternalId() == null);
+        if (!hasFakeData) return;
+
+        broadcastRepository.deleteAll();
+        matchRepository.deleteAll();
+        teamRepository.deleteAll();
+        competitionRepository.deleteAll();
     }
 }
