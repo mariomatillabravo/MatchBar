@@ -1,11 +1,18 @@
 package com.matchbar.app.ui.screens.admin
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -14,6 +21,8 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.matchbar.app.data.api.MatchBarApi
 import com.matchbar.app.data.model.Bar
+import com.matchbar.app.ui.common.AccentPill
+import com.matchbar.app.ui.common.Appear
 import com.matchbar.app.ui.common.EmptyBox
 import com.matchbar.app.ui.common.ErrorBox
 import com.matchbar.app.ui.common.LoadingBox
@@ -56,7 +65,7 @@ class AdminViewModel(private val api: MatchBarApi) : ViewModel() {
 @Composable
 fun AdminPendingScreen(
     vmFactory: androidx.lifecycle.ViewModelProvider.Factory,
-    onLogout: () -> Unit
+    onOpenSettings: () -> Unit
 ) {
     val vm: AdminViewModel = viewModel(factory = vmFactory)
     val state by vm.state.collectAsState()
@@ -64,8 +73,12 @@ fun AdminPendingScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Bares pendientes") },
-                actions = { TextButton(onClick = onLogout) { Text("Salir") } }
+                title = { Text("Bares pendientes", fontWeight = FontWeight.ExtraBold) },
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, "Ajustes")
+                    }
+                }
             )
         }
     ) { padding ->
@@ -80,23 +93,61 @@ fun AdminPendingScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(state.pending) { bar ->
-                    OutlinedCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(bar.name, style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.SemiBold)
-                            Text(bar.address, style = MaterialTheme.typography.bodyMedium)
-                            bar.description?.let {
-                                Spacer(Modifier.height(4.dp))
-                                Text(it, style = MaterialTheme.typography.bodySmall)
-                            }
-                            Spacer(Modifier.height(12.dp))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Button(onClick = { vm.approve(bar.id) }) { Text("Aprobar") }
-                                OutlinedButton(onClick = { vm.reject(bar.id) }) { Text("Rechazar") }
-                            }
-                        }
+                itemsIndexed(state.pending) { index, bar ->
+                    Appear(indexForStagger = index) {
+                        PendingBarCard(
+                            bar = bar,
+                            onApprove = { vm.approve(bar.id) },
+                            onReject = { vm.reject(bar.id) }
+                        )
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PendingBarCard(bar: Bar, onApprove: () -> Unit, onReject: () -> Unit) {
+    ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(bar.name, style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                AccentPill("Pendiente")
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Filled.Place, null, modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.width(6.dp))
+                Text(bar.address, style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            bar.description?.let {
+                Spacer(Modifier.height(6.dp))
+                Text(it, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(onClick = onApprove, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Filled.Check, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Aprobar")
+                }
+                OutlinedButton(
+                    onClick = onReject,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    ),
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp, MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Filled.Close, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text("Rechazar")
                 }
             }
         }

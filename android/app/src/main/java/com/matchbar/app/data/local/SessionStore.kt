@@ -12,6 +12,9 @@ import kotlinx.coroutines.runBlocking
 
 private val Context.dataStore by preferencesDataStore(name = "matchbar_prefs")
 
+/** Preferencia de tema seleccionada por el usuario. */
+enum class ThemeMode { SYSTEM, LIGHT, DARK }
+
 class SessionStore(private val context: Context) {
 
     private val KEY_TOKEN = stringPreferencesKey("jwt")
@@ -19,6 +22,7 @@ class SessionStore(private val context: Context) {
     private val KEY_EMAIL = stringPreferencesKey("email")
     private val KEY_ROLE = stringPreferencesKey("role")
     private val KEY_USER_ID = stringPreferencesKey("user_id")
+    private val KEY_THEME = stringPreferencesKey("theme_mode")
 
     data class Session(
         val token: String,
@@ -27,6 +31,15 @@ class SessionStore(private val context: Context) {
         val name: String,
         val role: Role
     )
+
+    /** Tema elegido por el usuario. Se conserva aunque cierre sesión. */
+    val themeMode: Flow<ThemeMode> = context.dataStore.data.map { prefs ->
+        prefs[KEY_THEME]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.SYSTEM
+    }
+
+    suspend fun setThemeMode(mode: ThemeMode) {
+        context.dataStore.edit { it[KEY_THEME] = mode.name }
+    }
 
     val session: Flow<Session?> = context.dataStore.data.map { prefs ->
         val token = prefs[KEY_TOKEN] ?: return@map null
@@ -51,7 +64,14 @@ class SessionStore(private val context: Context) {
     }
 
     suspend fun clear() {
-        context.dataStore.edit { it.clear() }
+        // Borramos solo los datos de sesión; mantenemos preferencias como el tema.
+        context.dataStore.edit { prefs ->
+            prefs.remove(KEY_TOKEN)
+            prefs.remove(KEY_USER_ID)
+            prefs.remove(KEY_EMAIL)
+            prefs.remove(KEY_NAME)
+            prefs.remove(KEY_ROLE)
+        }
     }
 
     /** Devuelve el token actual de forma síncrona para el interceptor de OkHttp. */

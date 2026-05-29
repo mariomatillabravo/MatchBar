@@ -45,8 +45,6 @@ data class BarUpsertRequest(
     val name: String,
     val description: String? = null,
     val address: String,
-    val latitude: Double,
-    val longitude: Double,
     val ownerPhone: String? = null,
     val photoUrl: String? = null
 )

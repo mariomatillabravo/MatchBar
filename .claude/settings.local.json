@@ -11,7 +11,12 @@
       "PowerShell(docker compose up --build -d api 2>&1)",
       "PowerShell(docker compose ps)",
       "Bash(Get-ChildItem -Path \"C:\\\\CLASE\\\\matchbarAPP\\\\MatchBar\" -Force)",
-      "Bash(Select-Object Name, FullName)"
+      "Bash(Select-Object Name, FullName)",
+      "Bash(./gradlew :app:compileDebugKotlin -q)",
+      "Read(//c/c/CLASE/matchbarAPP/**)",
+      "Read(//c/c/CLASE/matchbarAPP/MatchBar/**)",
+      "Bash(xargs grep -l \"fun.*userMessage\")",
+      "PowerShell(Get-Command *)"
     ]
   }
 }

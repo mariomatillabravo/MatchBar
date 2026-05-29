@@ -5,9 +5,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import com.matchbar.app.data.local.ThemeMode
 import com.matchbar.app.ui.navigation.AppNavigation
 import com.matchbar.app.ui.theme.MatchBarTheme
 
@@ -26,10 +30,18 @@ class MainActivity : ComponentActivity() {
             Manifest.permission.ACCESS_COARSE_LOCATION
         ))
 
+        val app = application as MatchBarApp
+
         setContent {
-            MatchBarTheme {
+            val themeMode by app.sessionStore.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
+            val darkTheme = when (themeMode) {
+                ThemeMode.SYSTEM -> isSystemInDarkTheme()
+                ThemeMode.LIGHT -> false
+                ThemeMode.DARK -> true
+            }
+            MatchBarTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    AppNavigation(application as MatchBarApp)
+                    AppNavigation(app)
                 }
             }
         }

@@ -11,13 +11,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
 import com.matchbar.app.data.model.Bar
 import com.matchbar.app.ui.common.ErrorBox
 import com.matchbar.app.ui.common.LoadingBox
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.overlay.Marker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,6 +29,7 @@ fun NearbyBarsScreen(
 ) {
     val vm: NearbyBarsViewModel = viewModel(factory = vmFactory)
     val state by vm.state.collectAsState()
+    val mapView = rememberMapViewWithLifecycle()
 
     LaunchedEffect(matchId) { vm.init(matchId) }
 
@@ -51,28 +52,36 @@ fun NearbyBarsScreen(
                     onRetry = vm::loadLocationAndBars,
                     modifier = Modifier.weight(1f))
                 else -> {
-                    val center = LatLng(
-                        state.userLat ?: NearbyBarsViewModel.DEFAULT_LAT,
-                        state.userLng ?: NearbyBarsViewModel.DEFAULT_LNG
-                    )
-                    val cameraState = rememberCameraPositionState {
-                        position = CameraPosition.fromLatLngZoom(center, 13f)
-                    }
+                    val centerLat = state.userLat ?: NearbyBarsViewModel.DEFAULT_LAT
+                    val centerLng = state.userLng ?: NearbyBarsViewModel.DEFAULT_LNG
+                    var centered by remember { mutableStateOf(false) }
 
                     Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        GoogleMap(
+                        AndroidView(
                             modifier = Modifier.fillMaxSize(),
-                            cameraPositionState = cameraState
-                        ) {
-                            state.bars.forEach { bar ->
-                                Marker(
-                                    state = MarkerState(LatLng(bar.latitude, bar.longitude)),
-                                    title = bar.name,
-                                    snippet = bar.address,
-                                    onInfoWindowClick = { onBarClick(bar) }
-                                )
+                            factory = { mapView },
+                            update = { map ->
+                                if (!centered) {
+                                    map.controller.setZoom(13.0)
+                                    map.controller.setCenter(GeoPoint(centerLat, centerLng))
+                                    centered = true
+                                }
+                                map.overlays.clear()
+                                state.bars.forEach { bar ->
+                                    val marker = Marker(map).apply {
+                                        position = GeoPoint(bar.latitude, bar.longitude)
+                                        title = bar.name
+                                        snippet = bar.address
+                                        setOnMarkerClickListener { _, _ ->
+                                            onBarClick(bar)
+                                            true
+                                        }
+                                    }
+                                    map.overlays.add(marker)
+                                }
+                                map.invalidate()
                             }
-                        }
+                        )
                     }
 
                     HorizontalDivider()

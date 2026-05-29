@@ -23,6 +23,14 @@ matchbar:
     sync-days-ahead: 15
     sync-interval-ms: 43200000  # 12 horas
 
+  geocoding:
+    # Nominatim (OpenStreetMap): geocodificación gratuita y sin API key.
+    base-url: https://nominatim.openstreetmap.org/search
+    # Nominatim exige un User-Agent identificable (si no, devuelve 403).
+    user-agent: MatchBar/1.0 (https://github.com/titofp/matchbar)
+    # Sesga los resultados a un país (códigos ISO separados por coma). Vacío = mundial.
+    country-codes: es
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

@@ -1,8 +1,5 @@
 package com.matchbar.app.ui.screens.map
 
-import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -16,20 +13,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.android.gms.maps.MapsInitializer
-import com.google.android.gms.maps.model.BitmapDescriptor
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
-import com.google.android.gms.maps.model.CameraPosition
-import com.google.android.gms.maps.model.LatLng
-import com.google.maps.android.compose.*
 import com.matchbar.app.R
 import com.matchbar.app.data.model.Bar
 import com.matchbar.app.data.model.Match
 import com.matchbar.app.ui.common.ErrorBox
 import com.matchbar.app.ui.common.LoadingBox
 import com.matchbar.app.util.formatKickoff
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.overlay.Marker
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,7 +34,8 @@ fun AllBarsMapScreen(
     val vm: AllBarsMapViewModel = viewModel(factory = vmFactory)
     val state by vm.state.collectAsState()
     val context = LocalContext.current
-    val markerIcon = remember { bitmapDescriptorFromVector(context, R.drawable.ic_bar_marker) }
+    val mapView = rememberMapViewWithLifecycle()
+    val markerIcon = remember { ContextCompat.getDrawable(context, R.drawable.ic_bar_marker) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Mapa de bares") }) }) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -49,30 +44,39 @@ fun AllBarsMapScreen(
                 state.error != null -> ErrorBox(state.error!!, onRetry = vm::load,
                     modifier = Modifier.fillMaxSize())
                 else -> {
-                    val center = LatLng(
-                        state.userLat ?: AllBarsMapViewModel.DEFAULT_LAT,
-                        state.userLng ?: AllBarsMapViewModel.DEFAULT_LNG
-                    )
-                    val cameraState = rememberCameraPositionState {
-                        position = CameraPosition.fromLatLngZoom(center, 12f)
-                    }
-                    GoogleMap(
+                    val centerLat = state.userLat ?: AllBarsMapViewModel.DEFAULT_LAT
+                    val centerLng = state.userLng ?: AllBarsMapViewModel.DEFAULT_LNG
+                    var centered by remember { mutableStateOf(false) }
+
+                    AndroidView(
                         modifier = Modifier.fillMaxSize(),
-                        cameraPositionState = cameraState
-                    ) {
-                        state.bars.forEach { bar ->
-                            Marker(
-                                state = MarkerState(LatLng(bar.latitude, bar.longitude)),
-                                title = bar.name,
-                                snippet = bar.address,
-                                icon = markerIcon,
-                                onClick = {
-                                    vm.selectBar(bar)
-                                    true // consumimos el evento: no mostramos info-window nativa
+                        factory = { mapView },
+                        update = { map ->
+                            if (!centered) {
+                                map.controller.setZoom(12.0)
+                                map.controller.setCenter(GeoPoint(centerLat, centerLng))
+                                centered = true
+                            }
+                            map.overlays.clear()
+                            state.bars.forEach { bar ->
+                                val marker = Marker(map).apply {
+                                    position = GeoPoint(bar.latitude, bar.longitude)
+                                    title = bar.name
+                                    snippet = bar.address
+                                    markerIcon?.let {
+                                        icon = it
+                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                    }
+                                    setOnMarkerClickListener { _, _ ->
+                                        vm.selectBar(bar)
+                                        true // consumimos el evento: no mostramos info-window nativa
+                                    }
                                 }
-                            )
+                                map.overlays.add(marker)
+                            }
+                            map.invalidate()
                         }
-                    }
+                    )
                 }
             }
         }
@@ -167,18 +171,4 @@ private fun MatchRow(match: Match) {
                 style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
         }
     }
-}
-
-/** Convierte un vector drawable en un BitmapDescriptor para usarlo como icono de marcador. */
-private fun bitmapDescriptorFromVector(context: Context, resId: Int): BitmapDescriptor? {
-    // Garantiza que la fábrica de BitmapDescriptor esté inicializada aunque el mapa
-    // todavía no se haya creado (evita "IBitmapDescriptorFactory is not initialized").
-    MapsInitializer.initialize(context)
-    val drawable = ContextCompat.getDrawable(context, resId) ?: return null
-    drawable.setBounds(0, 0, drawable.intrinsicWidth, drawable.intrinsicHeight)
-    val bitmap = Bitmap.createBitmap(
-        drawable.intrinsicWidth, drawable.intrinsicHeight, Bitmap.Config.ARGB_8888
-    )
-    drawable.draw(Canvas(bitmap))
-    return BitmapDescriptorFactory.fromBitmap(bitmap)
 }

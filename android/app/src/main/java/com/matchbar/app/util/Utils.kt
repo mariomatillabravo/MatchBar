@@ -1,5 +1,9 @@
 package com.matchbar.app.util
 
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import retrofit2.HttpException
 import java.io.IOException
 import java.time.Instant
@@ -21,8 +25,19 @@ fun Throwable.userMessage(): String = when (this) {
         404 -> "No encontrado"
         409 -> "Conflicto: el recurso ya existe"
         in 500..599 -> "Error del servidor. Inténtalo más tarde."
-        else -> message ?: "Error HTTP ${code()}"
+        // Otros 4xx (p. ej. 422 al no localizar una dirección): mostramos el
+        // mensaje que envía el backend, que ya es legible para el usuario.
+        else -> parseServerMessage() ?: (message ?: "Error HTTP ${code()}")
     }
     is IOException -> "No se pudo conectar con el servidor"
     else -> message ?: "Error inesperado"
 }
+
+/** Extrae el campo "message" del cuerpo de error JSON del backend, si existe. */
+private fun HttpException.parseServerMessage(): String? = runCatching {
+    val raw = response()?.errorBody()?.string()
+    if (raw.isNullOrBlank()) return null
+    Json.parseToJsonElement(raw).jsonObject["message"]
+        ?.jsonPrimitive?.contentOrNull
+        ?.takeIf { it.isNotBlank() }
+}.getOrNull()

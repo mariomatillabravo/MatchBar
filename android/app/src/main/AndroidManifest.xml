@@ -17,11 +17,7 @@
         android:usesCleartextTraffic="true"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- Sustituye por tu propia API key de Google Maps si quieres mapas de Google.
-             Si no la pones, la app funciona pero la pantalla de mapa se verá en gris. -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="@string/google_maps_api_key"/>
+        <!-- Los mapas usan OpenStreetMap (osmdroid): no requieren API key. -->
 
         <activity
             android:name=".MainActivity"

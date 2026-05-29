@@ -5,14 +5,18 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -22,6 +26,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.matchbar.app.data.api.MatchBarApi
 import com.matchbar.app.data.model.Bar
 import com.matchbar.app.data.model.BarUpsertRequest
+import com.matchbar.app.ui.common.Appear
+import com.matchbar.app.ui.common.GradientButton
 import com.matchbar.app.util.userMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -105,7 +111,7 @@ class MyBarViewModel(private val api: MatchBarApi) : ViewModel() {
 @Composable
 fun MyBarScreen(
     vmFactory: androidx.lifecycle.ViewModelProvider.Factory,
-    onLogout: () -> Unit
+    onOpenSettings: () -> Unit
 ) {
     val vm: MyBarViewModel = viewModel(factory = vmFactory)
     val state by vm.state.collectAsState()
@@ -121,8 +127,6 @@ fun MyBarScreen(
     var description by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var ownerPhone by remember { mutableStateOf("") }
-    var lat by remember { mutableStateOf("40.4168") }
-    var lng by remember { mutableStateOf("-3.7038") }
 
     LaunchedEffect(state.bar) {
         state.bar?.let {
@@ -130,8 +134,6 @@ fun MyBarScreen(
             description = it.description.orEmpty()
             address = it.address
             ownerPhone = it.ownerPhone.orEmpty()
-            lat = it.latitude.toString()
-            lng = it.longitude.toString()
         }
     }
 
@@ -146,7 +148,11 @@ fun MyBarScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Mi bar") },
-                actions = { TextButton(onClick = onLogout) { Text("Salir") } }
+                actions = {
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Filled.Settings, "Ajustes")
+                    }
+                }
             )
         }
     ) { padding ->
@@ -154,96 +160,125 @@ fun MyBarScreen(
             modifier = Modifier.padding(padding).padding(16.dp).fillMaxSize()
                 .verticalScroll(rememberScrollState())
         ) {
-            state.bar?.let {
-                AssistChip(onClick = {}, label = { Text("Estado: ${it.status}") })
-                Spacer(Modifier.height(12.dp))
-            } ?: Text("Aún no has creado tu ficha de bar. Rellena los datos abajo.",
-                style = MaterialTheme.typography.bodyMedium)
-
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(name, { name = it },
-                label = { Text("Nombre del bar") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(description, { description = it },
-                label = { Text("Descripción") },
-                modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 6)
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(address, { address = it },
-                label = { Text("Dirección") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true)
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(ownerPhone, { ownerPhone = it },
-                label = { Text("Teléfono de contacto") },
-                modifier = Modifier.fillMaxWidth(), singleLine = true,
-                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                    keyboardType = KeyboardType.Phone))
-            Spacer(Modifier.height(8.dp))
-            Row {
-                OutlinedTextField(lat, { lat = it },
-                    label = { Text("Latitud") },
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal),
-                    singleLine = true)
-                Spacer(Modifier.width(8.dp))
-                OutlinedTextField(lng, { lng = it },
-                    label = { Text("Longitud") },
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal),
-                    singleLine = true)
+            Appear {
+                state.bar?.let { StatusPill(it.status) }
+                    ?: Text(
+                        "Aún no has creado tu ficha de bar. Rellena los datos para aparecer en el mapa.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
             }
 
             Spacer(Modifier.height(16.dp))
-            Text("Licencia de actividad (PDF)",
-                style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(4.dp))
-            state.licenseFilename?.let {
-                Text("Adjuntada: $it",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.height(8.dp))
-            }
-            OutlinedButton(
-                onClick = { pickPdf.launch("application/pdf") },
-                enabled = state.bar != null && !state.uploadingLicense,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (state.uploadingLicense) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                } else {
-                    Text(if (state.licenseFilename != null) "Reemplazar PDF" else "Adjuntar PDF")
+
+            Appear(indexForStagger = 1) {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("DATOS DEL BAR", style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(12.dp))
+                        OutlinedTextField(name, { name = it },
+                            label = { Text("Nombre del bar") },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(description, { description = it },
+                            label = { Text("Descripción") },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth(), minLines = 3, maxLines = 6)
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(address, { address = it },
+                            label = { Text("Dirección") },
+                            placeholder = { Text("Ej: Calle Bravo Murillo 34, Madrid") },
+                            supportingText = {
+                                Text("Indica calle, número y ciudad. Ubicaremos tu bar automáticamente.")
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        Spacer(Modifier.height(10.dp))
+                        OutlinedTextField(ownerPhone, { ownerPhone = it },
+                            label = { Text("Teléfono de contacto") },
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier.fillMaxWidth(), singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = KeyboardType.Phone))
+                    }
                 }
             }
-            if (state.bar == null) {
-                Text("Guarda primero la ficha del bar para poder subir la licencia.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
 
             Spacer(Modifier.height(16.dp))
-            Button(
+
+            Appear(indexForStagger = 2) {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("LICENCIA DE ACTIVIDAD (PDF)",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(8.dp))
+                        state.licenseFilename?.let {
+                            Text("Adjuntada: $it",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.height(8.dp))
+                        }
+                        OutlinedButton(
+                            onClick = { pickPdf.launch("application/pdf") },
+                            enabled = state.bar != null && !state.uploadingLicense,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (state.uploadingLicense) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Text(if (state.licenseFilename != null) "Reemplazar PDF" else "Adjuntar PDF")
+                            }
+                        }
+                        if (state.bar == null) {
+                            Spacer(Modifier.height(6.dp))
+                            Text("Guarda primero la ficha del bar para poder subir la licencia.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+            GradientButton(
+                text = if (state.bar == null) "Crear ficha" else "Guardar cambios",
                 onClick = {
-                    val latNum = lat.toDoubleOrNull() ?: 0.0
-                    val lngNum = lng.toDoubleOrNull() ?: 0.0
                     vm.save(BarUpsertRequest(
                         name = name.trim(),
                         description = description.ifBlank { null },
                         address = address.trim(),
-                        latitude = latNum,
-                        longitude = lngNum,
                         ownerPhone = ownerPhone.ifBlank { null }
                     ))
                 },
                 enabled = !state.saving && name.isNotBlank() && address.isNotBlank(),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (state.saving) {
-                    CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp,
-                        color = MaterialTheme.colorScheme.onPrimary)
-                } else Text(if (state.bar == null) "Crear ficha" else "Guardar cambios")
-            }
+                loading = state.saving
+            )
+            Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun StatusPill(status: String) {
+    val (container, content, label) = when (status) {
+        "APPROVED" -> Triple(MaterialTheme.colorScheme.primaryContainer,
+            MaterialTheme.colorScheme.onPrimaryContainer, "Aprobado")
+        "REJECTED" -> Triple(MaterialTheme.colorScheme.errorContainer,
+            MaterialTheme.colorScheme.onErrorContainer, "Rechazado")
+        else -> Triple(MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer, "Pendiente de revisión")
+    }
+    Box(
+        modifier = Modifier
+            .clip(MaterialTheme.shapes.small)
+            .background(container)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+    ) {
+        Text("Estado: $label", color = content,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
     }
 }

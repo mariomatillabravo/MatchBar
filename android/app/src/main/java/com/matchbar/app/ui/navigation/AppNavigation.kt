@@ -19,8 +19,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.matchbar.app.MatchBarApp
 import com.matchbar.app.data.local.SessionStore
+import com.matchbar.app.data.local.ThemeMode
 import com.matchbar.app.data.model.Role
 import com.matchbar.app.ui.common.GenericFactory
+import com.matchbar.app.ui.screens.settings.SettingsScreen
 import com.matchbar.app.ui.screens.admin.AdminPendingScreen
 import com.matchbar.app.ui.screens.admin.AdminViewModel
 import com.matchbar.app.ui.screens.auth.AuthViewModel
@@ -46,6 +48,7 @@ fun AppNavigation(app: MatchBarApp) {
     val navController = rememberNavController()
     val sessionFlow = app.sessionStore.session.collectAsState(initial = null)
     val session = sessionFlow.value
+    val themeMode by app.sessionStore.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
     val scope = rememberCoroutineScope()
 
     val authFactory = remember {
@@ -98,8 +101,7 @@ fun AppNavigation(app: MatchBarApp) {
             composable(Routes.MATCHES) {
                 MatchesScreen(
                     vmFactory = matchesFactory,
-                    onMatchClick = { navController.navigate(Routes.map(it.id)) },
-                    onLogout = logout
+                    onMatchClick = { navController.navigate(Routes.map(it.id)) }
                 )
             }
             composable(
@@ -135,17 +137,37 @@ fun AppNavigation(app: MatchBarApp) {
                 )
             }
             composable(Routes.PROFILE) {
-                ProfileScreen(session = session, onLogout = logout)
+                ProfileScreen(
+                    session = session,
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                )
             }
 
             // ----- BAR -----
             composable(Routes.MY_BAR) {
-                MyBarScreen(vmFactory = myBarFactory, onLogout = logout)
+                MyBarScreen(
+                    vmFactory = myBarFactory,
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                )
             }
 
             // ----- ADMIN -----
             composable(Routes.ADMIN_PENDING) {
-                AdminPendingScreen(vmFactory = adminFactory, onLogout = logout)
+                AdminPendingScreen(
+                    vmFactory = adminFactory,
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                )
+            }
+
+            // ----- Ajustes (todos los roles) -----
+            composable(Routes.SETTINGS) {
+                SettingsScreen(
+                    session = session,
+                    themeMode = themeMode,
+                    onThemeChange = { mode -> scope.launch { app.sessionStore.setThemeMode(mode) } },
+                    onLogout = logout,
+                    onBack = { navController.popBackStack() }
+                )
             }
         }
     }

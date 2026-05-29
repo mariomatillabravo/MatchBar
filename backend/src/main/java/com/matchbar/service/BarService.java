@@ -24,6 +24,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ public class BarService {
     private final ReviewRepository reviewRepository;
     private final BroadcastRepository broadcastRepository;
     private final MongoTemplate mongoTemplate;
+    private final GeocodingService geocodingService;
 
     public BarResponse createOrUpdateForUser(String userId, BarUpsertRequest req) {
         User user = userRepository.findById(userId)
@@ -49,14 +51,30 @@ public class BarService {
                 Bar.builder().userId(userId).build());
         bar.setName(req.name());
         bar.setDescription(req.description());
+
+        // El dueño solo escribe la dirección; aquí la geocodificamos a lat/lng.
+        // Solo llamamos a Nominatim si la dirección es nueva o ha cambiado, para
+        // evitar peticiones innecesarias al guardar otros campos.
+        boolean needsGeocoding = bar.getLocation() == null
+                || !req.address().trim().equalsIgnoreCase(
+                        bar.getAddress() == null ? "" : bar.getAddress().trim());
         bar.setAddress(req.address());
-        bar.setLatitude(req.latitude());
-        bar.setLongitude(req.longitude());
-        bar.setLocation(new GeoJsonPoint(req.longitude().doubleValue(), req.latitude().doubleValue()));
+        if (needsGeocoding) {
+            applyGeocodedLocation(bar, req.address());
+        }
+
         if (req.ownerPhone() != null) bar.setOwnerPhone(req.ownerPhone());
         if (req.photoUrl() != null) bar.setPhotoUrl(req.photoUrl());
         bar = barRepository.save(bar);
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
+    }
+
+    /** Resuelve la dirección a coordenadas y las vuelca en la entidad (lat, lng y punto geoespacial). */
+    private void applyGeocodedLocation(Bar bar, String address) {
+        GeocodingService.Coordinates coords = geocodingService.geocode(address);
+        bar.setLatitude(BigDecimal.valueOf(coords.latitude()));
+        bar.setLongitude(BigDecimal.valueOf(coords.longitude()));
+        bar.setLocation(new GeoJsonPoint(coords.longitude(), coords.latitude()));
     }
 
     public BarResponse getById(String id) {
