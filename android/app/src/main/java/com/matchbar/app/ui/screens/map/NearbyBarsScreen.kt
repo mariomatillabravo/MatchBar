@@ -59,7 +59,7 @@ fun NearbyBarsScreen(
                         position = CameraPosition.fromLatLngZoom(center, 13f)
                     }
 
-                    Box(modifier = Modifier.weight(1.2f).fillMaxWidth()) {
+                    Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                         GoogleMap(
                             modifier = Modifier.fillMaxSize(),
                             cameraPositionState = cameraState

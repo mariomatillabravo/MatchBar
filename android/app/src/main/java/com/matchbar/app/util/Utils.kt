@@ -2,18 +2,16 @@ package com.matchbar.app.util
 
 import retrofit2.HttpException
 import java.io.IOException
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.Locale
-import java.util.TimeZone
 
-/** Formatea un instante ISO-8601 ("2025-05-12T19:00:00Z") a "12 may, 19:00". */
 fun formatKickoff(iso: String): String = runCatching {
-    val parser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.getDefault()).apply {
-        timeZone = TimeZone.getTimeZone("UTC")
-    }
-    val out = SimpleDateFormat("dd MMM, HH:mm", Locale("es", "ES"))
-    out.format(parser.parse(iso) ?: Date())
+    val instant = Instant.parse(iso)
+    val formatter = DateTimeFormatter.ofPattern("dd MMM, HH:mm", Locale("es", "ES"))
+        .withZone(ZoneId.of("Europe/Madrid"))
+    formatter.format(instant)
 }.getOrDefault(iso)
 
 fun Throwable.userMessage(): String = when (this) {

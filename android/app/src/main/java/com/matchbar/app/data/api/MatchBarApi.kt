@@ -42,6 +42,12 @@ interface MatchBarApi {
     suspend fun myScheduledMatches(): List<Match>
 
     // ----- Bars -----
+    @GET("api/bars")
+    suspend fun allBars(): List<Bar>
+
+    @GET("api/bars/{id}/matches")
+    suspend fun barUpcomingMatches(@Path("id") barId: String): List<Match>
+
     @GET("api/bars/nearby")
     suspend fun nearbyBars(
         @Query("lat") lat: Double,

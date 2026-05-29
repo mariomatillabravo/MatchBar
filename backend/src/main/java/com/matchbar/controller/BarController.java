@@ -3,10 +3,12 @@ package com.matchbar.controller;
 import com.matchbar.dto.request.BarUpsertRequest;
 import com.matchbar.dto.request.ReviewRequest;
 import com.matchbar.dto.response.BarResponse;
+import com.matchbar.dto.response.MatchResponse;
 import com.matchbar.dto.response.ReviewResponse;
 import com.matchbar.security.UserPrincipal;
 import com.matchbar.service.BarService;
 import com.matchbar.service.LicenseDocService;
+import com.matchbar.service.MatchService;
 import com.matchbar.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,12 @@ public class BarController {
     private final BarService barService;
     private final ReviewService reviewService;
     private final LicenseDocService licenseDocService;
+    private final MatchService matchService;
+
+    @GetMapping
+    public ResponseEntity<List<BarResponse>> all() {
+        return ResponseEntity.ok(barService.findAllApproved());
+    }
 
     @GetMapping("/nearby")
     public ResponseEntity<List<BarResponse>> nearby(
@@ -36,6 +44,11 @@ public class BarController {
             @RequestParam(required = false) String matchId,
             @RequestParam(required = false) Integer radiusMeters) {
         return ResponseEntity.ok(barService.findNearby(lat, lng, matchId, radiusMeters));
+    }
+
+    @GetMapping("/{id}/matches")
+    public ResponseEntity<List<MatchResponse>> upcomingMatches(@PathVariable String id) {
+        return ResponseEntity.ok(matchService.upcomingByBar(id));
     }
 
     @GetMapping("/{id}")

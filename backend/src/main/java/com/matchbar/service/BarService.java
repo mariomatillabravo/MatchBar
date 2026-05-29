@@ -96,6 +96,12 @@ public class BarService {
                 .collect(Collectors.toList());
     }
 
+    public List<BarResponse> findAllApproved() {
+        return barRepository.findByStatus(Bar.Status.APPROVED).stream()
+                .map(b -> BarResponse.from(b, null, computeAverage(b.getId())))
+                .collect(Collectors.toList());
+    }
+
     public java.util.Map<String, Long> getStatusStats() {
         return java.util.Map.of(
                 "pending",  barRepository.countByStatus(Bar.Status.PENDING),

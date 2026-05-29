@@ -3,6 +3,7 @@ package com.matchbar.app.ui.navigation
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material3.*
@@ -31,6 +32,8 @@ import com.matchbar.app.ui.screens.bars.BarDetailScreen
 import com.matchbar.app.ui.screens.bars.BarDetailViewModel
 import com.matchbar.app.ui.screens.favorites.FavoritesScreen
 import com.matchbar.app.ui.screens.favorites.FavoritesViewModel
+import com.matchbar.app.ui.screens.map.AllBarsMapScreen
+import com.matchbar.app.ui.screens.map.AllBarsMapViewModel
 import com.matchbar.app.ui.screens.map.NearbyBarsScreen
 import com.matchbar.app.ui.screens.map.NearbyBarsViewModel
 import com.matchbar.app.ui.screens.matches.MatchesScreen
@@ -49,6 +52,9 @@ fun AppNavigation(app: MatchBarApp) {
         GenericFactory { AuthViewModel(app.api, app.sessionStore) }
     }
     val matchesFactory = remember { GenericFactory { MatchesViewModel(app.api) } }
+    val allBarsMapFactory = remember {
+        GenericFactory { AllBarsMapViewModel(app.api, app.applicationContext) }
+    }
     val nearbyFactory = remember {
         GenericFactory { NearbyBarsViewModel(app.api, app.applicationContext) }
     }
@@ -69,7 +75,7 @@ fun AppNavigation(app: MatchBarApp) {
 
     // Flujo principal con bottom bar diferente según rol
     val startDest = when (session.role) {
-        Role.USER -> Routes.MATCHES
+        Role.USER -> Routes.MAP_ALL
         Role.BAR -> Routes.MY_BAR
         Role.ADMIN -> Routes.ADMIN_PENDING
     }
@@ -83,6 +89,12 @@ fun AppNavigation(app: MatchBarApp) {
             modifier = Modifier.padding(padding)
         ) {
             // ----- USER -----
+            composable(Routes.MAP_ALL) {
+                AllBarsMapScreen(
+                    vmFactory = allBarsMapFactory,
+                    onBarClick = { navController.navigate(Routes.barDetail(it.id)) }
+                )
+            }
             composable(Routes.MATCHES) {
                 MatchesScreen(
                     vmFactory = matchesFactory,
@@ -165,6 +177,7 @@ private fun AuthGraph(
 @Composable
 private fun UserBottomBar(navController: androidx.navigation.NavHostController) {
     val items = listOf(
+        Triple(Routes.MAP_ALL, "Mapa", Icons.Filled.Map),
         Triple(Routes.MATCHES, "Partidos", Icons.Filled.SportsSoccer),
         Triple(Routes.FAVORITES, "Favoritos", Icons.Filled.Favorite),
         Triple(Routes.PROFILE, "Cuenta", Icons.Filled.Person)
@@ -180,7 +193,7 @@ private fun UserBottomBar(navController: androidx.navigation.NavHostController) 
                 onClick = {
                     if (current != route) {
                         navController.navigate(route) {
-                            popUpTo(Routes.MATCHES) { inclusive = false }
+                            popUpTo(Routes.MAP_ALL) { inclusive = false }
                             launchSingleTop = true
                         }
                     }

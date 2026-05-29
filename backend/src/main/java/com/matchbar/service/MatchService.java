@@ -18,6 +18,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -72,6 +73,22 @@ public class MatchService {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "No tienes ficha de bar creada"));
         broadcastRepository.deleteByBarIdAndMatchId(bar.getId(), matchId);
+    }
+
+    public List<MatchResponse> upcomingByBar(String barId) {
+        List<String> matchIds = broadcastRepository.findByBarId(barId).stream()
+                .map(Broadcast::getMatchId)
+                .collect(Collectors.toList());
+        if (matchIds.isEmpty()) return List.of();
+        Instant now = Instant.now();
+        Instant until = now.plus(15, ChronoUnit.DAYS);
+        return matchRepository.findAllById(matchIds).stream()
+                .filter(m -> m.getKickoffAt() != null
+                        && !m.getKickoffAt().isBefore(now)
+                        && !m.getKickoffAt().isAfter(until))
+                .sorted(java.util.Comparator.comparing(Match::getKickoffAt))
+                .map(MatchResponse::from)
+                .collect(Collectors.toList());
     }
 
     public List<MatchResponse> listScheduledByBar(String userId) {

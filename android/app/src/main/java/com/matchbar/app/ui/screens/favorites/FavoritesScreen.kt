@@ -70,7 +70,14 @@ fun FavoritesScreen(
                         Column(modifier = Modifier.padding(12.dp)) {
                             Text(b.name, style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold)
-                            Text(b.address, style = MaterialTheme.typography.bodySmall)
+                            Text(b.address, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            b.averageRating?.let {
+                                Spacer(Modifier.height(4.dp))
+                                Text("⭐ %.1f".format(it),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary)
+                            }
                         }
                     }
                 }
