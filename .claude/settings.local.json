@@ -16,7 +16,9 @@
       "Read(//c/c/CLASE/matchbarAPP/**)",
       "Read(//c/c/CLASE/matchbarAPP/MatchBar/**)",
       "Bash(xargs grep -l \"fun.*userMessage\")",
-      "PowerShell(Get-Command *)"
+      "PowerShell(Get-Command *)",
+      "PowerShell(Remove-Item *)",
+      "Bash(gradle -v)"
     ]
   }
 }

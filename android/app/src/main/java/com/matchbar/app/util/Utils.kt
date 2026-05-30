@@ -1,5 +1,6 @@
 package com.matchbar.app.util
 
+import com.matchbar.app.BuildConfig
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonObject
@@ -10,6 +11,16 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+/**
+ * Convierte una ruta relativa del backend (p. ej. "/api/bars/images/abc")
+ * en una URL absoluta usando la base configurada, para cargarla con Coil.
+ */
+fun absoluteUrl(path: String?): String? {
+    if (path.isNullOrBlank()) return null
+    if (path.startsWith("http://") || path.startsWith("https://")) return path
+    return BuildConfig.API_BASE_URL.trimEnd('/') + "/" + path.trimStart('/')
+}
 
 fun formatKickoff(iso: String): String = runCatching {
     val instant = Instant.parse(iso)

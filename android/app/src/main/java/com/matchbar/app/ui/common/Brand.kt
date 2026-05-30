@@ -1,6 +1,7 @@
 package com.matchbar.app.ui.common
 
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -22,10 +23,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.matchbar.app.R
 import kotlinx.coroutines.delay
 
 /**
@@ -102,6 +105,38 @@ fun BrandBadge(
             modifier = Modifier.size(size * 0.5f)
         )
     }
+}
+
+/**
+ * Logo de marca personalizado (imagen) con un pulso lento opcional.
+ * Reutiliza la misma animación de escala que [BrandBadge] para mantener
+ * coherencia visual en la pantalla de login.
+ */
+@Composable
+fun BrandLogo(
+    modifier: Modifier = Modifier,
+    size: Dp = 120.dp,
+    pulse: Boolean = false
+) {
+    val infinite = rememberInfiniteTransition(label = "logo")
+    val pulseScale by infinite.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.06f,
+        animationSpec = infiniteRepeatable(tween(950, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+        label = "logoPulse"
+    )
+    Image(
+        painter = painterResource(R.drawable.brand_logo),
+        contentDescription = "MatchBar",
+        modifier = modifier
+            .size(size)
+            .graphicsLayer {
+                if (pulse) {
+                    scaleX = pulseScale
+                    scaleY = pulseScale
+                }
+            }
+    )
 }
 
 /** Botón principal con degradado de marca y estado de carga. */

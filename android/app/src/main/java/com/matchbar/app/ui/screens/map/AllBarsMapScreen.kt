@@ -14,13 +14,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.matchbar.app.R
 import com.matchbar.app.data.model.Bar
 import com.matchbar.app.data.model.Match
 import com.matchbar.app.ui.common.ErrorBox
 import com.matchbar.app.ui.common.LoadingBox
+import com.matchbar.app.util.barMarkerIcon
 import com.matchbar.app.util.formatKickoff
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Marker
@@ -35,7 +34,7 @@ fun AllBarsMapScreen(
     val state by vm.state.collectAsState()
     val context = LocalContext.current
     val mapView = rememberMapViewWithLifecycle()
-    val markerIcon = remember { ContextCompat.getDrawable(context, R.drawable.ic_bar_marker) }
+    val markerIcon = remember { barMarkerIcon(context) }
 
     Scaffold(topBar = { TopAppBar(title = { Text("Mapa de bares") }) }) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {

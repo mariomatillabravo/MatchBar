@@ -6,20 +6,32 @@ import android.provider.OpenableColumns
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.matchbar.app.util.absoluteUrl
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -43,6 +55,8 @@ data class MyBarUiState(
     val loading: Boolean = false,
     val saving: Boolean = false,
     val uploadingLicense: Boolean = false,
+    val uploadingPhoto: Boolean = false,
+    val uploadingMenu: Boolean = false,
     val licenseFilename: String? = null,
     val error: String? = null,
     val info: String? = null
@@ -80,14 +94,7 @@ class MyBarViewModel(private val api: MatchBarApi) : ViewModel() {
     fun uploadLicense(context: Context, uri: Uri) = viewModelScope.launch {
         _state.update { it.copy(uploadingLicense = true, error = null, info = null) }
         runCatching {
-            val resolver = context.contentResolver
-            val mime = resolver.getType(uri) ?: "application/pdf"
-            val filename = queryDisplayName(context, uri) ?: "licencia.pdf"
-            val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
-                ?: error("No se pudo leer el fichero")
-            val body = bytes.toRequestBody(mime.toMediaTypeOrNull())
-            val part = MultipartBody.Part.createFormData("file", filename, body)
-            api.uploadLicense(part)
+            api.uploadLicense(partFromUri(context, uri, fallbackName = "licencia.pdf"))
         }.onSuccess { res ->
             _state.update { it.copy(uploadingLicense = false,
                 licenseFilename = res.filename,
@@ -95,6 +102,38 @@ class MyBarViewModel(private val api: MatchBarApi) : ViewModel() {
         }.onFailure { e ->
             _state.update { it.copy(uploadingLicense = false, error = e.userMessage()) }
         }
+    }
+
+    fun uploadPhoto(context: Context, uri: Uri) = viewModelScope.launch {
+        _state.update { it.copy(uploadingPhoto = true, error = null, info = null) }
+        runCatching { api.uploadBarPhoto(partFromUri(context, uri, fallbackName = "foto.jpg")) }
+            .onSuccess { bar -> _state.update { it.copy(uploadingPhoto = false, bar = bar,
+                info = "Foto añadida") } }
+            .onFailure { e -> _state.update { it.copy(uploadingPhoto = false, error = e.userMessage()) } }
+    }
+
+    fun removePhoto(fileId: String) = viewModelScope.launch {
+        runCatching { api.deleteBarPhoto(fileId) }
+            .onSuccess { bar -> _state.update { it.copy(bar = bar) } }
+            .onFailure { e -> _state.update { it.copy(error = e.userMessage()) } }
+    }
+
+    fun uploadMenu(context: Context, uri: Uri) = viewModelScope.launch {
+        _state.update { it.copy(uploadingMenu = true, error = null, info = null) }
+        runCatching { api.uploadBarMenu(partFromUri(context, uri, fallbackName = "carta.jpg")) }
+            .onSuccess { bar -> _state.update { it.copy(uploadingMenu = false, bar = bar,
+                info = "Carta actualizada") } }
+            .onFailure { e -> _state.update { it.copy(uploadingMenu = false, error = e.userMessage()) } }
+    }
+
+    private fun partFromUri(context: Context, uri: Uri, fallbackName: String): MultipartBody.Part {
+        val resolver = context.contentResolver
+        val mime = resolver.getType(uri) ?: "application/octet-stream"
+        val filename = queryDisplayName(context, uri) ?: fallbackName
+        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() }
+            ?: error("No se pudo leer el fichero")
+        val body = bytes.toRequestBody(mime.toMediaTypeOrNull())
+        return MultipartBody.Part.createFormData("file", filename, body)
     }
 
     private fun queryDisplayName(context: Context, uri: Uri): String? {
@@ -142,6 +181,12 @@ fun MyBarScreen(
     ) { uri ->
         uri?.let { vm.uploadLicense(context, it) }
     }
+    val pickPhoto = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { vm.uploadPhoto(context, it) } }
+    val pickMenu = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { vm.uploadMenu(context, it) } }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHost) },
@@ -208,7 +253,110 @@ fun MyBarScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // ----- Fotos del establecimiento -----
             Appear(indexForStagger = 2) {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("FOTOS DEL ESTABLECIMIENTO",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(10.dp))
+                        val photos = state.bar?.photoUrls ?: emptyList()
+                        if (photos.isNotEmpty()) {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(photos) { url ->
+                                    Box {
+                                        AsyncImage(
+                                            model = absoluteUrl(url),
+                                            contentDescription = "Foto del bar",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(width = 120.dp, height = 90.dp)
+                                                .clip(MaterialTheme.shapes.medium)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(4.dp)
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.Black.copy(alpha = 0.55f))
+                                                .clickable {
+                                                    vm.removePhoto(url.substringAfterLast('/'))
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Filled.Close, "Quitar foto",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(10.dp))
+                        }
+                        OutlinedButton(
+                            onClick = { pickPhoto.launch("image/*") },
+                            enabled = state.bar != null && !state.uploadingPhoto,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (state.uploadingPhoto) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Filled.AddAPhoto, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Añadir foto")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ----- Carta / menú -----
+            Appear(indexForStagger = 3) {
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(16.dp)) {
+                        Text("CARTA DEL BAR",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        Spacer(Modifier.height(10.dp))
+                        state.bar?.menuUrl?.let { menu ->
+                            AsyncImage(
+                                model = absoluteUrl(menu),
+                                contentDescription = "Carta del bar",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(180.dp)
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                            )
+                            Spacer(Modifier.height(10.dp))
+                        }
+                        OutlinedButton(
+                            onClick = { pickMenu.launch("image/*") },
+                            enabled = state.bar != null && !state.uploadingMenu,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (state.uploadingMenu) {
+                                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Filled.MenuBook, null, modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(if (state.bar?.menuUrl != null) "Reemplazar carta" else "Subir carta")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ----- Licencia -----
+            Appear(indexForStagger = 4) {
                 ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(16.dp)) {
                         Text("LICENCIA DE ACTIVIDAD (PDF)",

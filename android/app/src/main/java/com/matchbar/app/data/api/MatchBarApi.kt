@@ -69,6 +69,17 @@ interface MatchBarApi {
     @POST("api/bars/me/license")
     suspend fun uploadLicense(@Part file: MultipartBody.Part): LicenseUploadResponse
 
+    @Multipart
+    @POST("api/bars/me/photos")
+    suspend fun uploadBarPhoto(@Part file: MultipartBody.Part): Bar
+
+    @DELETE("api/bars/me/photos/{fileId}")
+    suspend fun deleteBarPhoto(@Path("fileId") fileId: String): Bar
+
+    @Multipart
+    @POST("api/bars/me/menu")
+    suspend fun uploadBarMenu(@Part file: MultipartBody.Part): Bar
+
     // ----- Reviews -----
     @GET("api/bars/{id}/reviews")
     suspend fun barReviews(@Path("id") id: String): List<Review>

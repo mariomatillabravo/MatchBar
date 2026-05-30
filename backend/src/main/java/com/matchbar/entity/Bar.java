@@ -10,6 +10,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document(collection = "bars")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -40,6 +42,13 @@ public class Bar {
     private String licenseDocFilename;
 
     private String photoUrl;
+
+    /** Fotos del establecimiento (ids de ficheros en GridFS). */
+    @Builder.Default
+    private List<String> photoFileIds = new ArrayList<>();
+
+    /** Carta del bar (id de fichero/imagen en GridFS). */
+    private String menuFileId;
 
     @Builder.Default
     private Status status = Status.PENDING;

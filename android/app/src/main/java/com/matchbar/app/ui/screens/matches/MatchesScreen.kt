@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,8 +30,7 @@ import com.matchbar.app.util.formatKickoff
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MatchesScreen(
-    vmFactory: androidx.lifecycle.ViewModelProvider.Factory,
-    onMatchClick: (Match) -> Unit
+    vmFactory: androidx.lifecycle.ViewModelProvider.Factory
 ) {
     val vm: MatchesViewModel = viewModel(factory = vmFactory)
     val state by vm.state.collectAsState()
@@ -81,7 +79,7 @@ fun MatchesScreen(
                 ) {
                     itemsIndexed(state.matches) { index, m ->
                         Appear(indexForStagger = index) {
-                            MatchCard(m) { onMatchClick(m) }
+                            MatchCard(m)
                         }
                     }
                 }
@@ -92,9 +90,8 @@ fun MatchesScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MatchCard(match: Match, onClick: () -> Unit) {
+private fun MatchCard(match: Match) {
     ElevatedCard(
-        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 3.dp)
     ) {
@@ -146,24 +143,6 @@ private fun MatchCard(match: Match, onClick: () -> Unit) {
                     )
                 }
 
-                Spacer(Modifier.height(14.dp))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(Modifier.height(10.dp))
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Ver bares que lo retransmiten",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(Modifier.weight(1f))
-                    Icon(
-                        Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
             }
         }
     }

@@ -1,18 +1,29 @@
 package com.matchbar.app.ui.screens.bars
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
+import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.SportsSoccer
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.*
@@ -24,15 +35,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import com.matchbar.app.data.model.Match
 import com.matchbar.app.data.model.Review
 import com.matchbar.app.data.model.Role
 import com.matchbar.app.ui.common.Appear
 import com.matchbar.app.ui.common.ErrorBox
 import com.matchbar.app.ui.common.LoadingBox
 import com.matchbar.app.ui.common.brandGradient
+import com.matchbar.app.util.absoluteUrl
+import com.matchbar.app.util.formatKickoff
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -46,6 +64,8 @@ fun BarDetailScreen(
     val vm: BarDetailViewModel = viewModel(factory = vmFactory)
     val state by vm.state.collectAsState()
     val snackbarHost = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var fullscreenImage by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(barId) { vm.load(barId) }
     LaunchedEffect(state.info, state.error) {
@@ -119,13 +139,116 @@ fun BarDetailScreen(
                                     Spacer(Modifier.width(8.dp))
                                     Text(bar.address, style = MaterialTheme.typography.bodyMedium)
                                 }
+                                // Teléfono: solo si el bar lo ha indicado
+                                bar.ownerPhone?.takeIf { it.isNotBlank() }?.let { phone ->
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable {
+                                            context.startActivity(
+                                                Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+                                        }
+                                    ) {
+                                        Icon(Icons.Filled.Phone, null,
+                                            tint = MaterialTheme.colorScheme.secondary,
+                                            modifier = Modifier.size(18.dp))
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(phone, style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ----- Partidos que retransmite -----
+                    Spacer(Modifier.height(14.dp))
+                    Appear(indexForStagger = 2) {
+                        ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(16.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.SportsSoccer, null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp))
+                                    Spacer(Modifier.width(8.dp))
+                                    Text("Partidos que retransmite",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold)
+                                }
+                                Spacer(Modifier.height(10.dp))
+                                if (state.matches.isEmpty()) {
+                                    Text("Este bar no tiene partidos programados por ahora.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                } else {
+                                    state.matches.forEachIndexed { i, m ->
+                                        if (i > 0) Spacer(Modifier.height(8.dp))
+                                        MatchRow(m)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ----- Fotos del establecimiento -----
+                    if (bar.photoUrls.isNotEmpty()) {
+                        Spacer(Modifier.height(14.dp))
+                        Appear(indexForStagger = 2) {
+                            Column {
+                                Text("FOTOS", style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
+                                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    items(bar.photoUrls) { url ->
+                                        AsyncImage(
+                                            model = absoluteUrl(url),
+                                            contentDescription = "Foto del bar",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(width = 230.dp, height = 150.dp)
+                                                .clip(MaterialTheme.shapes.large)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                                .clickable { fullscreenImage = absoluteUrl(url) }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    // ----- Carta del bar -----
+                    bar.menuUrl?.let { menu ->
+                        Spacer(Modifier.height(14.dp))
+                        Appear(indexForStagger = 3) {
+                            ElevatedCard(
+                                onClick = { fullscreenImage = absoluteUrl(menu) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.MenuBook, null,
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(26.dp))
+                                    Spacer(Modifier.width(14.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text("Carta del bar",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold)
+                                        Text("Toca para verla",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
                             }
                         }
                     }
 
                     if (currentRole == Role.USER) {
                         Spacer(Modifier.height(20.dp))
-                        Appear(indexForStagger = 2) {
+                        Appear(indexForStagger = 4) {
                             ReviewForm(
                                 submitting = state.submitting,
                                 onSubmit = { a, f, p, c -> vm.submitReview(a, f, p, c) }
@@ -150,6 +273,29 @@ fun BarDetailScreen(
                         }
                     }
                     Spacer(Modifier.height(16.dp))
+                }
+
+                // Imagen a pantalla completa (fotos o carta)
+                fullscreenImage?.let { img ->
+                    Dialog(onDismissRequest = { fullscreenImage = null }) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.TopEnd
+                        ) {
+                            AsyncImage(
+                                model = img,
+                                contentDescription = null,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(MaterialTheme.shapes.large)
+                            )
+                            IconButton(onClick = { fullscreenImage = null }) {
+                                Icon(Icons.Filled.Close, "Cerrar",
+                                    tint = Color.White)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -276,6 +422,45 @@ private fun StarSelector(label: String, value: Int, onChange: (Int) -> Unit) {
                     modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun MatchRow(match: Match) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                "${match.homeTeamName} · ${match.awayTeamName}",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                match.competitionName,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Schedule, null,
+                modifier = Modifier.size(14.dp),
+                tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(4.dp))
+            Text(
+                formatKickoff(match.kickoffAt),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }

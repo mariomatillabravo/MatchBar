@@ -149,6 +149,40 @@ public class BarService {
         }).collect(Collectors.toList());
     }
 
+    private static final int MAX_PHOTOS = 8;
+
+    public BarResponse addPhoto(String userId, MultipartFile file, ImageService imageService) {
+        Bar bar = barRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
+        if (bar.getPhotoFileIds() == null) bar.setPhotoFileIds(new java.util.ArrayList<>());
+        if (bar.getPhotoFileIds().size() >= MAX_PHOTOS) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Máximo " + MAX_PHOTOS + " fotos por bar");
+        }
+        String fileId = imageService.store(file);
+        bar.getPhotoFileIds().add(fileId);
+        bar = barRepository.save(bar);
+        return BarResponse.from(bar, null, computeAverage(bar.getId()));
+    }
+
+    public BarResponse removePhoto(String userId, String fileId, ImageService imageService) {
+        Bar bar = barRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
+        if (bar.getPhotoFileIds() != null && bar.getPhotoFileIds().remove(fileId)) {
+            imageService.delete(fileId);
+            bar = barRepository.save(bar);
+        }
+        return BarResponse.from(bar, null, computeAverage(bar.getId()));
+    }
+
+    public BarResponse setMenu(String userId, MultipartFile file, ImageService imageService) {
+        Bar bar = barRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
+        if (bar.getMenuFileId() != null) imageService.delete(bar.getMenuFileId());
+        bar.setMenuFileId(imageService.store(file));
+        bar = barRepository.save(bar);
+        return BarResponse.from(bar, null, computeAverage(bar.getId()));
+    }
+
     public String replaceLicense(String userId, MultipartFile file, LicenseDocService licenseDocService) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));

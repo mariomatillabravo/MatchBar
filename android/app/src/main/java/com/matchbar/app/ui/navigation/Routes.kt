@@ -20,8 +20,8 @@ object Routes {
 
     // Bar (rol BAR)
     const val MY_BAR = "my-bar"
-    const val MY_BAR_EDIT = "my-bar/edit"
-    const val MY_BROADCASTS = "my-broadcasts"
+    const val MY_BAR_MATCHES = "my-bar/matches"
+    const val MY_BAR_REVIEWS = "my-bar/reviews"
 
     // Admin
     const val ADMIN_PENDING = "admin/pending"

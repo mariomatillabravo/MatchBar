@@ -5,7 +5,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.RateReview
 import androidx.compose.material.icons.filled.SportsSoccer
+import androidx.compose.material.icons.filled.Storefront
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -28,6 +30,10 @@ import com.matchbar.app.ui.screens.admin.AdminViewModel
 import com.matchbar.app.ui.screens.auth.AuthViewModel
 import com.matchbar.app.ui.screens.auth.LoginScreen
 import com.matchbar.app.ui.screens.auth.RegisterScreen
+import com.matchbar.app.ui.screens.bar.BarMatchesScreen
+import com.matchbar.app.ui.screens.bar.BarMatchesViewModel
+import com.matchbar.app.ui.screens.bar.BarReviewsScreen
+import com.matchbar.app.ui.screens.bar.BarReviewsViewModel
 import com.matchbar.app.ui.screens.bar.MyBarScreen
 import com.matchbar.app.ui.screens.bar.MyBarViewModel
 import com.matchbar.app.ui.screens.bars.BarDetailScreen
@@ -64,6 +70,8 @@ fun AppNavigation(app: MatchBarApp) {
     val barDetailFactory = remember { GenericFactory { BarDetailViewModel(app.api) } }
     val favoritesFactory = remember { GenericFactory { FavoritesViewModel(app.api) } }
     val myBarFactory = remember { GenericFactory { MyBarViewModel(app.api) } }
+    val barMatchesFactory = remember { GenericFactory { BarMatchesViewModel(app.api) } }
+    val barReviewsFactory = remember { GenericFactory { BarReviewsViewModel(app.api) } }
     val adminFactory = remember { GenericFactory { AdminViewModel(app.api) } }
 
     val logout: () -> Unit = {
@@ -84,7 +92,13 @@ fun AppNavigation(app: MatchBarApp) {
     }
 
     Scaffold(
-        bottomBar = { if (session.role == Role.USER) UserBottomBar(navController) }
+        bottomBar = {
+            when (session.role) {
+                Role.USER -> UserBottomBar(navController)
+                Role.BAR -> BarBottomBar(navController)
+                else -> {}
+            }
+        }
     ) { padding ->
         NavHost(
             navController = navController,
@@ -99,10 +113,7 @@ fun AppNavigation(app: MatchBarApp) {
                 )
             }
             composable(Routes.MATCHES) {
-                MatchesScreen(
-                    vmFactory = matchesFactory,
-                    onMatchClick = { navController.navigate(Routes.map(it.id)) }
-                )
+                MatchesScreen(vmFactory = matchesFactory)
             }
             composable(
                 route = Routes.MAP,
@@ -147,6 +158,18 @@ fun AppNavigation(app: MatchBarApp) {
             composable(Routes.MY_BAR) {
                 MyBarScreen(
                     vmFactory = myBarFactory,
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                )
+            }
+            composable(Routes.MY_BAR_MATCHES) {
+                BarMatchesScreen(
+                    vmFactory = barMatchesFactory,
+                    onOpenSettings = { navController.navigate(Routes.SETTINGS) }
+                )
+            }
+            composable(Routes.MY_BAR_REVIEWS) {
+                BarReviewsScreen(
+                    vmFactory = barReviewsFactory,
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) }
                 )
             }
@@ -216,6 +239,35 @@ private fun UserBottomBar(navController: androidx.navigation.NavHostController) 
                     if (current != route) {
                         navController.navigate(route) {
                             popUpTo(Routes.MAP_ALL) { inclusive = false }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                icon = { Icon(icon, label) },
+                label = { Text(label) }
+            )
+        }
+    }
+}
+
+@Composable
+private fun BarBottomBar(navController: androidx.navigation.NavHostController) {
+    val items = listOf(
+        Triple(Routes.MY_BAR, "Mi bar", Icons.Filled.Storefront),
+        Triple(Routes.MY_BAR_MATCHES, "Partidos", Icons.Filled.SportsSoccer),
+        Triple(Routes.MY_BAR_REVIEWS, "Reseñas", Icons.Filled.RateReview)
+    )
+    val backStack by navController.currentBackStackEntryAsState()
+    val current = backStack?.destination?.route
+
+    NavigationBar {
+        items.forEach { (route, label, icon) ->
+            NavigationBarItem(
+                selected = current == route,
+                onClick = {
+                    if (current != route) {
+                        navController.navigate(route) {
+                            popUpTo(Routes.MY_BAR) { inclusive = false }
                             launchSingleTop = true
                         }
                     }

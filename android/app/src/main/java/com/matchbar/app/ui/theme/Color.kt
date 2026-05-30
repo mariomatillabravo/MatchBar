@@ -13,8 +13,9 @@ val PitchGreen = Color(0xFF00A859)
 val PitchGreenDark = Color(0xFF007A40)
 val PitchGreenBright = Color(0xFF2CD17E)
 
-val BoltOrange = Color(0xFFFF6B00)
-val BoltOrangeBright = Color(0xFFFF8A33)
+// Acento amarillo "estadio"
+val StadiumYellow = Color(0xFFF2B705)
+val StadiumYellowBright = Color(0xFFFFD24D)
 
 val SkyBlue = Color(0xFF2E74B5)
 val SkyBlueBright = Color(0xFF8FC2F0)
@@ -25,10 +26,10 @@ val md_light_onPrimary = Color(0xFFFFFFFF)
 val md_light_primaryContainer = Color(0xFFB6F2CF)
 val md_light_onPrimaryContainer = Color(0xFF00351C)
 
-val md_light_secondary = BoltOrange
-val md_light_onSecondary = Color(0xFFFFFFFF)
-val md_light_secondaryContainer = Color(0xFFFFE0C2)
-val md_light_onSecondaryContainer = Color(0xFF3A1A00)
+val md_light_secondary = StadiumYellow
+val md_light_onSecondary = Color(0xFF2A2100)
+val md_light_secondaryContainer = Color(0xFFFFE9A8)
+val md_light_onSecondaryContainer = Color(0xFF261A00)
 
 val md_light_tertiary = SkyBlue
 val md_light_onTertiary = Color(0xFFFFFFFF)
@@ -55,10 +56,10 @@ val md_dark_onPrimary = Color(0xFF00351C)
 val md_dark_primaryContainer = Color(0xFF00633A)
 val md_dark_onPrimaryContainer = Color(0xFFB6F2CF)
 
-val md_dark_secondary = BoltOrangeBright
-val md_dark_onSecondary = Color(0xFF4A2400)
-val md_dark_secondaryContainer = Color(0xFF6E3500)
-val md_dark_onSecondaryContainer = Color(0xFFFFE0C2)
+val md_dark_secondary = StadiumYellowBright
+val md_dark_onSecondary = Color(0xFF3A2E00)
+val md_dark_secondaryContainer = Color(0xFF5C4600)
+val md_dark_onSecondaryContainer = Color(0xFFFFE9A8)
 
 val md_dark_tertiary = SkyBlueBright
 val md_dark_onTertiary = Color(0xFF00344F)
