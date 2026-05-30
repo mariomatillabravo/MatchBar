@@ -11,7 +11,6 @@ public record BarResponse(
         String address,
         BigDecimal latitude,
         BigDecimal longitude,
-        String photoUrl,
         List<String> photoUrls,
         List<String> menuUrls,
         String ownerPhone,
@@ -32,7 +31,7 @@ public record BarResponse(
                 : b.getMenuFileIds().stream().map(id -> IMG_PATH + id).toList();
         return new BarResponse(b.getId(), b.getName(), b.getDescription(),
                 b.getAddress(), b.getLatitude(), b.getLongitude(),
-                b.getPhotoUrl(), photos, menus, b.getOwnerPhone(),
+                photos, menus, b.getOwnerPhone(),
                 b.getStatus(), distance, avgRating);
     }
 }

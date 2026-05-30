@@ -41,8 +41,6 @@ public class Bar {
 
     private String licenseDocFilename;
 
-    private String photoUrl;
-
     /** Fotos del establecimiento (ids de ficheros en GridFS). */
     @Builder.Default
     private List<String> photoFileIds = new ArrayList<>();

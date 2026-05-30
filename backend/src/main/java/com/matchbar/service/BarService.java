@@ -64,7 +64,6 @@ public class BarService {
         }
 
         if (req.ownerPhone() != null) bar.setOwnerPhone(req.ownerPhone());
-        if (req.photoUrl() != null) bar.setPhotoUrl(req.photoUrl());
         bar = barRepository.save(bar);
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
     }
@@ -233,12 +232,18 @@ public class BarService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
         bar.setName(req.name());
         bar.setDescription(req.description());
+
+        // El admin tampoco teclea coordenadas: solo edita la dirección y la
+        // re-geocodificamos si ha cambiado (o si el bar aún no tenía ubicación).
+        boolean needsGeocoding = bar.getLocation() == null
+                || !req.address().trim().equalsIgnoreCase(
+                        bar.getAddress() == null ? "" : bar.getAddress().trim());
         bar.setAddress(req.address());
-        bar.setLatitude(req.latitude());
-        bar.setLongitude(req.longitude());
-        bar.setLocation(new GeoJsonPoint(req.longitude().doubleValue(), req.latitude().doubleValue()));
+        if (needsGeocoding) {
+            applyGeocodedLocation(bar, req.address());
+        }
+
         bar.setOwnerPhone(req.ownerPhone());
-        bar.setPhotoUrl(req.photoUrl());
         bar = barRepository.save(bar);
         User owner = bar.getUserId() != null ? userRepository.findById(bar.getUserId()).orElse(null) : null;
         return toAdminResponse(bar, owner);
@@ -253,10 +258,17 @@ public class BarService {
         barRepository.delete(bar);
     }
 
+    private static final String IMG_PATH = "/api/bars/images/";
+
     private BarAdminResponse toAdminResponse(Bar b, User owner) {
+        List<String> photos = (b.getPhotoFileIds() == null) ? List.of()
+                : b.getPhotoFileIds().stream().map(id -> IMG_PATH + id).toList();
+        List<String> menus = (b.getMenuFileIds() == null) ? List.of()
+                : b.getMenuFileIds().stream().map(id -> IMG_PATH + id).toList();
         return new BarAdminResponse(
                 b.getId(), b.getUserId(), b.getName(), b.getDescription(), b.getAddress(),
-                b.getLatitude(), b.getLongitude(), b.getOwnerPhone(), b.getPhotoUrl(),
+                b.getLatitude(), b.getLongitude(), b.getOwnerPhone(),
+                photos, menus,
                 b.getLicenseDocFilename(), b.getStatus(),
                 owner != null ? owner.getName() : null,
                 owner != null ? owner.getEmail() : null,

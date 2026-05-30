@@ -34,7 +34,6 @@ data class Bar(
     val longitude: Double,
     val ownerPhone: String? = null,
     val licenseDocFilename: String? = null,
-    val photoUrl: String? = null,
     val photoUrls: List<String> = emptyList(),
     val menuUrls: List<String> = emptyList(),
     val status: String,
@@ -47,8 +46,7 @@ data class BarUpsertRequest(
     val name: String,
     val description: String? = null,
     val address: String,
-    val ownerPhone: String? = null,
-    val photoUrl: String? = null
+    val ownerPhone: String? = null
 )
 
 @Serializable

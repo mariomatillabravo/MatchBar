@@ -18,7 +18,8 @@
       "Bash(xargs grep -l \"fun.*userMessage\")",
       "PowerShell(Get-Command *)",
       "PowerShell(Remove-Item *)",
-      "Bash(gradle -v)"
+      "Bash(gradle -v)",
+      "Bash(awk -F: '$1 > 600')"
     ]
   }
 }

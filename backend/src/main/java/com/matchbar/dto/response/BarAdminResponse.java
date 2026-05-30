@@ -3,6 +3,7 @@ package com.matchbar.dto.response;
 import com.matchbar.entity.Bar;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 
 public record BarAdminResponse(
         String id,
@@ -13,7 +14,8 @@ public record BarAdminResponse(
         BigDecimal latitude,
         BigDecimal longitude,
         String ownerPhone,
-        String photoUrl,
+        List<String> photoUrls,
+        List<String> menuUrls,
         String licenseDocFilename,
         Bar.Status status,
         String ownerName,
