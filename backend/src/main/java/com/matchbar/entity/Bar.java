@@ -47,8 +47,9 @@ public class Bar {
     @Builder.Default
     private List<String> photoFileIds = new ArrayList<>();
 
-    /** Carta del bar (id de fichero/imagen en GridFS). */
-    private String menuFileId;
+    /** Carta del bar: una o varias imágenes (ids de ficheros en GridFS). */
+    @Builder.Default
+    private List<String> menuFileIds = new ArrayList<>();
 
     @Builder.Default
     private Status status = Status.PENDING;

@@ -7,9 +7,11 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -33,13 +35,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.matchbar.app.data.model.Match
@@ -66,6 +72,7 @@ fun BarDetailScreen(
     val snackbarHost = remember { SnackbarHostState() }
     val context = LocalContext.current
     var fullscreenImage by remember { mutableStateOf<String?>(null) }
+    var showMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(barId) { vm.load(barId) }
     LaunchedEffect(state.info, state.error) {
@@ -119,12 +126,18 @@ fun BarDetailScreen(
                         .fillMaxSize()
                         .verticalScroll(rememberScrollState())
                 ) {
-                    Appear {
-                        RatingHeader(rating = bar.averageRating, reviewCount = state.reviews.size)
+                    // 1) Carrusel de fotos del bar (solo si hay fotos)
+                    if (bar.photoUrls.isNotEmpty()) {
+                        Appear {
+                            PhotoCarousel(
+                                urls = bar.photoUrls,
+                                onImageClick = { fullscreenImage = it }
+                            )
+                        }
+                        Spacer(Modifier.height(14.dp))
                     }
 
-                    Spacer(Modifier.height(14.dp))
-
+                    // 2) Información del bar
                     Appear(indexForStagger = 1) {
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(16.dp)) {
@@ -162,9 +175,38 @@ fun BarDetailScreen(
                         }
                     }
 
-                    // ----- Partidos que retransmite -----
+                    // 3) Ver carta (solo si el bar tiene carta)
+                    if (bar.menuUrls.isNotEmpty()) {
+                        Spacer(Modifier.height(14.dp))
+                        Appear(indexForStagger = 2) {
+                            ElevatedCard(
+                                onClick = { showMenu = true },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(modifier = Modifier.padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Filled.MenuBook, null,
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.size(26.dp))
+                                    Spacer(Modifier.width(14.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text("Ver carta",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold)
+                                        Text("Toca para ver la carta del bar",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
+                                        tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        }
+                    }
+
+                    // 4) Partidos que retransmite
                     Spacer(Modifier.height(14.dp))
-                    Appear(indexForStagger = 2) {
+                    Appear(indexForStagger = 3) {
                         ElevatedCard(modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(16.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -191,59 +233,10 @@ fun BarDetailScreen(
                         }
                     }
 
-                    // ----- Fotos del establecimiento -----
-                    if (bar.photoUrls.isNotEmpty()) {
-                        Spacer(Modifier.height(14.dp))
-                        Appear(indexForStagger = 2) {
-                            Column {
-                                Text("FOTOS", style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(start = 4.dp, bottom = 8.dp))
-                                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                    items(bar.photoUrls) { url ->
-                                        AsyncImage(
-                                            model = absoluteUrl(url),
-                                            contentDescription = "Foto del bar",
-                                            contentScale = ContentScale.Crop,
-                                            modifier = Modifier
-                                                .size(width = 230.dp, height = 150.dp)
-                                                .clip(MaterialTheme.shapes.large)
-                                                .background(MaterialTheme.colorScheme.surfaceVariant)
-                                                .clickable { fullscreenImage = absoluteUrl(url) }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // ----- Carta del bar -----
-                    bar.menuUrl?.let { menu ->
-                        Spacer(Modifier.height(14.dp))
-                        Appear(indexForStagger = 3) {
-                            ElevatedCard(
-                                onClick = { fullscreenImage = absoluteUrl(menu) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(modifier = Modifier.padding(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.MenuBook, null,
-                                        tint = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.size(26.dp))
-                                    Spacer(Modifier.width(14.dp))
-                                    Column(Modifier.weight(1f)) {
-                                        Text("Carta del bar",
-                                            style = MaterialTheme.typography.titleMedium,
-                                            fontWeight = FontWeight.Bold)
-                                        Text("Toca para verla",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    }
-                                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
-                                        tint = MaterialTheme.colorScheme.primary)
-                                }
-                            }
-                        }
+                    // 5) Valoración + reseñas
+                    Spacer(Modifier.height(14.dp))
+                    Appear(indexForStagger = 4) {
+                        RatingHeader(rating = bar.averageRating, reviewCount = state.reviews.size)
                     }
 
                     if (currentRole == Role.USER) {
@@ -275,27 +268,174 @@ fun BarDetailScreen(
                     Spacer(Modifier.height(16.dp))
                 }
 
-                // Imagen a pantalla completa (fotos o carta)
+                // Imagen a pantalla completa con zoom (fotos o carta)
                 fullscreenImage?.let { img ->
-                    Dialog(onDismissRequest = { fullscreenImage = null }) {
+                    Dialog(
+                        onDismissRequest = { fullscreenImage = null },
+                        properties = DialogProperties(usePlatformDefaultWidth = false)
+                    ) {
                         Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.TopEnd
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.92f))
                         ) {
-                            AsyncImage(
-                                model = img,
-                                contentDescription = null,
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(MaterialTheme.shapes.large)
-                            )
-                            IconButton(onClick = { fullscreenImage = null }) {
-                                Icon(Icons.Filled.Close, "Cerrar",
-                                    tint = Color.White)
+                            ZoomableImage(model = img, modifier = Modifier.fillMaxSize())
+                            IconButton(
+                                onClick = { fullscreenImage = null },
+                                modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
+                            ) {
+                                Icon(Icons.Filled.Close, "Cerrar", tint = Color.White)
                             }
                         }
                     }
+                }
+
+                // Visor de la carta: lista las fotos de arriba a abajo;
+                // al tocar una se abre el visor a pantalla completa con zoom.
+                if (showMenu) {
+                    MenuViewerDialog(
+                        urls = bar.menuUrls,
+                        onImageClick = { fullscreenImage = it },
+                        onDismiss = { showMenu = false }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Imagen ampliable: pellizco para hacer zoom, arrastre para mover y doble toque para alternar. */
+@Composable
+private fun ZoomableImage(model: Any?, modifier: Modifier = Modifier) {
+    var scale by remember { mutableStateOf(1f) }
+    var offset by remember { mutableStateOf(Offset.Zero) }
+    Box(
+        modifier = modifier
+            .clipToBounds()
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        if (scale > 1f) {
+                            scale = 1f; offset = Offset.Zero
+                        } else {
+                            scale = 2.5f
+                        }
+                    }
+                )
+            }
+            .pointerInput(Unit) {
+                detectTransformGestures { _, pan, zoom, _ ->
+                    scale = (scale * zoom).coerceIn(1f, 5f)
+                    offset = if (scale > 1f) offset + pan else Offset.Zero
+                }
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        AsyncImage(
+            model = model,
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+                    scaleX = scale
+                    scaleY = scale
+                    translationX = offset.x
+                    translationY = offset.y
+                }
+        )
+    }
+}
+
+@Composable
+private fun MenuViewerDialog(
+    urls: List<String>,
+    onImageClick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.92f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 56.dp, bottom = 24.dp)
+                    .padding(horizontal = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                urls.forEach { url ->
+                    AsyncImage(
+                        model = absoluteUrl(url),
+                        contentDescription = "Carta del bar",
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.medium)
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                            .clickable { absoluteUrl(url)?.let(onImageClick) }
+                    )
+                }
+            }
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+            ) {
+                Icon(Icons.Filled.Close, "Cerrar", tint = Color.White)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PhotoCarousel(urls: List<String>, onImageClick: (String) -> Unit) {
+    val pagerState = rememberPagerState(pageCount = { urls.size })
+    Column {
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 10.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) { page ->
+            val url = absoluteUrl(urls[page])
+            AsyncImage(
+                model = url,
+                contentDescription = "Foto del bar",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(210.dp)
+                    .clip(MaterialTheme.shapes.large)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { url?.let(onImageClick) }
+            )
+        }
+        if (urls.size > 1) {
+            Spacer(Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                repeat(urls.size) { i ->
+                    val selected = i == pagerState.currentPage
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 3.dp)
+                            .size(if (selected) 9.dp else 7.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outlineVariant
+                            )
+                    )
                 }
             }
         }

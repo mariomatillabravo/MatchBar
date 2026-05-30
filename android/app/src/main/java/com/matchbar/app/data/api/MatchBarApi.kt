@@ -80,6 +80,9 @@ interface MatchBarApi {
     @POST("api/bars/me/menu")
     suspend fun uploadBarMenu(@Part file: MultipartBody.Part): Bar
 
+    @DELETE("api/bars/me/menu/{fileId}")
+    suspend fun deleteBarMenu(@Path("fileId") fileId: String): Bar
+
     // ----- Reviews -----
     @GET("api/bars/{id}/reviews")
     suspend fun barReviews(@Path("id") id: String): List<Review>

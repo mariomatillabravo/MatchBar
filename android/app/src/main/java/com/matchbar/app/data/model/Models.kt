@@ -36,7 +36,7 @@ data class Bar(
     val licenseDocFilename: String? = null,
     val photoUrl: String? = null,
     val photoUrls: List<String> = emptyList(),
-    val menuUrl: String? = null,
+    val menuUrls: List<String> = emptyList(),
     val status: String,
     val distanceMeters: Double? = null,
     val averageRating: Double? = null

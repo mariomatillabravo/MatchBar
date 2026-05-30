@@ -120,10 +120,18 @@ public class BarController {
 
     @PostMapping(value = "/me/menu", consumes = "multipart/form-data")
     @PreAuthorize("hasRole('BAR')")
-    public ResponseEntity<BarResponse> uploadMenu(
+    public ResponseEntity<BarResponse> addMenuPhoto(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(barService.setMenu(me.getId(), file, imageService));
+        return ResponseEntity.ok(barService.addMenuPhoto(me.getId(), file, imageService));
+    }
+
+    @DeleteMapping("/me/menu/{fileId}")
+    @PreAuthorize("hasRole('BAR')")
+    public ResponseEntity<BarResponse> removeMenuPhoto(
+            @PathVariable String fileId,
+            @AuthenticationPrincipal UserPrincipal me) {
+        return ResponseEntity.ok(barService.removeMenuPhoto(me.getId(), fileId, imageService));
     }
 
     /** Sirve una imagen del bar. Público para que los clientes (Coil) puedan cargarla sin token. */

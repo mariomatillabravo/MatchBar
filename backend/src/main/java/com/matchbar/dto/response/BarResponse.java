@@ -13,7 +13,7 @@ public record BarResponse(
         BigDecimal longitude,
         String photoUrl,
         List<String> photoUrls,
-        String menuUrl,
+        List<String> menuUrls,
         String ownerPhone,
         Bar.Status status,
         Double distanceMeters,
@@ -28,10 +28,11 @@ public record BarResponse(
     public static BarResponse from(Bar b, Double distance, Double avgRating) {
         List<String> photos = (b.getPhotoFileIds() == null) ? List.of()
                 : b.getPhotoFileIds().stream().map(id -> IMG_PATH + id).toList();
-        String menu = b.getMenuFileId() != null ? IMG_PATH + b.getMenuFileId() : null;
+        List<String> menus = (b.getMenuFileIds() == null) ? List.of()
+                : b.getMenuFileIds().stream().map(id -> IMG_PATH + id).toList();
         return new BarResponse(b.getId(), b.getName(), b.getDescription(),
                 b.getAddress(), b.getLatitude(), b.getLongitude(),
-                b.getPhotoUrl(), photos, menu, b.getOwnerPhone(),
+                b.getPhotoUrl(), photos, menus, b.getOwnerPhone(),
                 b.getStatus(), distance, avgRating);
     }
 }

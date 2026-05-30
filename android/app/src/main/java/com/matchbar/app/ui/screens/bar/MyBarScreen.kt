@@ -122,8 +122,14 @@ class MyBarViewModel(private val api: MatchBarApi) : ViewModel() {
         _state.update { it.copy(uploadingMenu = true, error = null, info = null) }
         runCatching { api.uploadBarMenu(partFromUri(context, uri, fallbackName = "carta.jpg")) }
             .onSuccess { bar -> _state.update { it.copy(uploadingMenu = false, bar = bar,
-                info = "Carta actualizada") } }
+                info = "Foto añadida a la carta") } }
             .onFailure { e -> _state.update { it.copy(uploadingMenu = false, error = e.userMessage()) } }
+    }
+
+    fun removeMenu(fileId: String) = viewModelScope.launch {
+        runCatching { api.deleteBarMenu(fileId) }
+            .onSuccess { bar -> _state.update { it.copy(bar = bar) } }
+            .onFailure { e -> _state.update { it.copy(error = e.userMessage()) } }
     }
 
     private fun partFromUri(context: Context, uri: Uri, fallbackName: String): MultipartBody.Part {
@@ -323,17 +329,39 @@ fun MyBarScreen(
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.height(10.dp))
-                        state.bar?.menuUrl?.let { menu ->
-                            AsyncImage(
-                                model = absoluteUrl(menu),
-                                contentDescription = "Carta del bar",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(180.dp)
-                                    .clip(MaterialTheme.shapes.medium)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                            )
+                        val menus = state.bar?.menuUrls ?: emptyList()
+                        if (menus.isNotEmpty()) {
+                            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(menus) { url ->
+                                    Box {
+                                        AsyncImage(
+                                            model = absoluteUrl(url),
+                                            contentDescription = "Foto de la carta",
+                                            contentScale = ContentScale.Crop,
+                                            modifier = Modifier
+                                                .size(width = 120.dp, height = 90.dp)
+                                                .clip(MaterialTheme.shapes.medium)
+                                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                        )
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(4.dp)
+                                                .size(24.dp)
+                                                .clip(CircleShape)
+                                                .background(Color.Black.copy(alpha = 0.55f))
+                                                .clickable {
+                                                    vm.removeMenu(url.substringAfterLast('/'))
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(Icons.Filled.Close, "Quitar foto de la carta",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                }
+                            }
                             Spacer(Modifier.height(10.dp))
                         }
                         OutlinedButton(
@@ -346,7 +374,7 @@ fun MyBarScreen(
                             } else {
                                 Icon(Icons.Filled.MenuBook, null, modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text(if (state.bar?.menuUrl != null) "Reemplazar carta" else "Subir carta")
+                                Text("Añadir foto a la carta")
                             }
                         }
                     }

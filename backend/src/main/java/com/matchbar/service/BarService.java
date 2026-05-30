@@ -174,12 +174,27 @@ public class BarService {
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
     }
 
-    public BarResponse setMenu(String userId, MultipartFile file, ImageService imageService) {
+    private static final int MAX_MENU_PHOTOS = 8;
+
+    public BarResponse addMenuPhoto(String userId, MultipartFile file, ImageService imageService) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
-        if (bar.getMenuFileId() != null) imageService.delete(bar.getMenuFileId());
-        bar.setMenuFileId(imageService.store(file));
+        if (bar.getMenuFileIds() == null) bar.setMenuFileIds(new java.util.ArrayList<>());
+        if (bar.getMenuFileIds().size() >= MAX_MENU_PHOTOS) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Máximo " + MAX_MENU_PHOTOS + " fotos en la carta");
+        }
+        bar.getMenuFileIds().add(imageService.store(file));
         bar = barRepository.save(bar);
+        return BarResponse.from(bar, null, computeAverage(bar.getId()));
+    }
+
+    public BarResponse removeMenuPhoto(String userId, String fileId, ImageService imageService) {
+        Bar bar = barRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
+        if (bar.getMenuFileIds() != null && bar.getMenuFileIds().remove(fileId)) {
+            imageService.delete(fileId);
+            bar = barRepository.save(bar);
+        }
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
     }
 

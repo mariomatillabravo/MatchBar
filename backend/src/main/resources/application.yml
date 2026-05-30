@@ -7,6 +7,13 @@ spring:
       auto-index-creation: true
   jpa:
     open-in-view: false
+  servlet:
+    multipart:
+      # Por defecto Spring limita la subida a 1 MB/archivo, lo que hace fallar
+      # (500) la subida de fotos del bar y la carta. Subimos el límite a un
+      # tamaño razonable para imágenes desde el móvil.
+      max-file-size: 15MB
+      max-request-size: 20MB
 
 server:
   port: 8080
