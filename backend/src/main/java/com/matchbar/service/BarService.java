@@ -137,13 +137,18 @@ public class BarService {
             String licenseUrl = b.getLicenseDocFileId() != null
                     ? "/api/admin/bars/" + b.getId() + "/license"
                     : null;
+            List<String> photos = (b.getPhotoFileIds() == null) ? List.of()
+                    : b.getPhotoFileIds().stream().map(id -> IMG_PATH + id).toList();
+            List<String> menus = (b.getMenuFileIds() == null) ? List.of()
+                    : b.getMenuFileIds().stream().map(id -> IMG_PATH + id).toList();
             return new PendingBarResponse(
-                    b.getId(), b.getName(), b.getAddress(),
+                    b.getId(), b.getName(), b.getDescription(), b.getAddress(),
                     owner != null ? owner.getName() : null,
                     owner != null ? owner.getEmail() : null,
                     b.getOwnerPhone(),
                     b.getLicenseDocFilename(),
-                    licenseUrl
+                    licenseUrl,
+                    photos, menus
             );
         }).collect(Collectors.toList());
     }
@@ -249,6 +254,28 @@ public class BarService {
         return toAdminResponse(bar, owner);
     }
 
+    public BarAdminResponse adminRemovePhoto(String barId, String fileId, ImageService imageService) {
+        Bar bar = barRepository.findById(barId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
+        if (bar.getPhotoFileIds() != null && bar.getPhotoFileIds().remove(fileId)) {
+            imageService.delete(fileId);
+            bar = barRepository.save(bar);
+        }
+        User owner = bar.getUserId() != null ? userRepository.findById(bar.getUserId()).orElse(null) : null;
+        return toAdminResponse(bar, owner);
+    }
+
+    public BarAdminResponse adminRemoveMenu(String barId, String fileId, ImageService imageService) {
+        Bar bar = barRepository.findById(barId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
+        if (bar.getMenuFileIds() != null && bar.getMenuFileIds().remove(fileId)) {
+            imageService.delete(fileId);
+            bar = barRepository.save(bar);
+        }
+        User owner = bar.getUserId() != null ? userRepository.findById(bar.getUserId()).orElse(null) : null;
+        return toAdminResponse(bar, owner);
+    }
+
     public void adminDelete(String barId, LicenseDocService licenseDocService) {
         Bar bar = barRepository.findById(barId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
@@ -265,11 +292,14 @@ public class BarService {
                 : b.getPhotoFileIds().stream().map(id -> IMG_PATH + id).toList();
         List<String> menus = (b.getMenuFileIds() == null) ? List.of()
                 : b.getMenuFileIds().stream().map(id -> IMG_PATH + id).toList();
+        String licenseUrl = b.getLicenseDocFileId() != null
+                ? "/api/admin/bars/" + b.getId() + "/license"
+                : null;
         return new BarAdminResponse(
                 b.getId(), b.getUserId(), b.getName(), b.getDescription(), b.getAddress(),
                 b.getLatitude(), b.getLongitude(), b.getOwnerPhone(),
                 photos, menus,
-                b.getLicenseDocFilename(), b.getStatus(),
+                b.getLicenseDocFilename(), licenseUrl, b.getStatus(),
                 owner != null ? owner.getName() : null,
                 owner != null ? owner.getEmail() : null,
                 computeAverage(b.getId()),

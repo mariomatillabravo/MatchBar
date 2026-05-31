@@ -95,6 +95,8 @@
   .brand-name { display: flex; flex-direction: column; line-height: 1.15; }
   .brand-name b { font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em; }
   .brand-sub { font-size: .72rem; color: rgba(255,255,255,.55); text-transform: uppercase; letter-spacing: .08em; }
+  .brand-logo { width: 100%; max-width: 100%; height: auto; display: block; border-radius: 14px; }
+  .login-logo { width: 100%; max-width: 240px; height: auto; display: block; margin: 0 auto; border-radius: 14px; }
 
   .nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; }
   .nav-item { display: flex; align-items: center; gap: .75rem; width: 100%; text-align: left;
@@ -125,8 +127,8 @@
   .btn-logout:hover { background: rgba(255,255,255,.16); color: #fff; }
   .btn-logout svg { width: 17px; height: 17px; }
 
-  .content { min-width: 0; padding: 2rem 2.25rem 3.5rem; }
-  .content > main { max-width: 1180px; margin: 0 auto; }
+  .content { min-width: 0; padding: 2rem 1.5rem 3.5rem; }
+  .content > main { max-width: none; width: 100%; margin: 0; }
 
   /* ── Tarjetas de estadísticas ────────────────────────────── */
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
@@ -225,6 +227,12 @@
   .img-grid img { width: 124px; height: 94px; object-fit: cover; border-radius: 10px;
                   border: 1px solid var(--border); transition: transform .15s ease, box-shadow .15s ease; }
   .img-grid a:hover img { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  .img-item { position: relative; display: inline-flex; }
+  .img-del { position: absolute; top: 5px; right: 5px; width: 24px; height: 24px; padding: 0;
+             border-radius: 50%; background: rgba(220,38,38,.92); color: #fff; font-size: 17px;
+             font-weight: 700; line-height: 1; display: grid; place-items: center;
+             box-shadow: var(--shadow-sm); border: 1px solid rgba(255,255,255,.55); }
+  .img-del:hover { background: var(--danger); }
 
   /* ── Modal ───────────────────────────────────────────────── */
   .modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5);
@@ -272,12 +280,9 @@
 <!-- Login -->
 <div id="login-view">
   <div class="login-box">
-    <div class="login-brand">
-      <span class="brand-mark">⚽</span>
-      <div>
-        <div class="login-title">MatchBar</div>
-        <div class="login-sub">Panel de administración</div>
-      </div>
+    <div class="login-brand" style="flex-direction:column; gap:.6rem;">
+      <img class="login-logo" src="logo-letras.png" alt="MatchBar">
+      <div class="login-sub" style="text-align:center; width:100%">Panel de administración</div>
     </div>
     <h2>Iniciar sesión</h2>
     <label class="login-label" for="email">Email</label>
@@ -295,12 +300,9 @@
 
     <!-- Barra lateral -->
     <aside class="sidebar">
-      <div class="brand">
-        <span class="brand-mark">⚽</span>
-        <span class="brand-name">
-          <b>MatchBar</b>
-          <span class="brand-sub">Administración</span>
-        </span>
+      <div class="brand" style="flex-direction:column; align-items:stretch; gap:.5rem; padding:.35rem .1rem 1.2rem;">
+        <img class="brand-logo" src="logo-letras.png" alt="MatchBar">
+        <span class="brand-sub" style="text-align:center">Administración</span>
       </div>
 
       <nav class="nav">
@@ -389,6 +391,17 @@
       <div class="detail-card">
         <h3 style="margin-bottom:1.5rem">Solicitud de bar</h3>
         <div class="detail-grid" id="pending-detail-grid"></div>
+
+        <div id="pending-detail-photos-section" style="margin-top:1.75rem">
+          <h4 style="margin-bottom:.75rem">Fotos del establecimiento</h4>
+          <div id="pending-detail-photos" class="img-grid"></div>
+        </div>
+
+        <div id="pending-detail-menu-section" style="margin-top:1.75rem">
+          <h4 style="margin-bottom:.75rem">Carta del bar</h4>
+          <div id="pending-detail-menu" class="img-grid"></div>
+        </div>
+
         <div class="detail-actions">
           <button class="btn-success" id="pending-approve-btn">Aceptar solicitud</button>
           <button class="btn-danger"  id="pending-reject-btn">Eliminar solicitud</button>
@@ -522,6 +535,11 @@
         <div id="bar-edit-menu-section" style="margin-top:1.75rem">
           <h4 style="margin-bottom:.75rem">Carta del bar</h4>
           <div id="bar-edit-menu" class="img-grid"></div>
+        </div>
+
+        <div id="bar-edit-license-section" style="margin-top:1.75rem">
+          <h4 style="margin-bottom:.75rem">Licencia de actividad</h4>
+          <div id="bar-edit-license"></div>
         </div>
 
         <div class="detail-actions">
@@ -741,8 +759,12 @@ async function loadPending() {
       const phoneCell = b.ownerPhone
         ? escapeHtml(b.ownerPhone)
         : '<span class="doc-none">—</span>';
-      const docCell = b.licenseDocUrl
-        ? `📄 ${escapeHtml(b.licenseDocFilename || 'Ver licencia')}`
+      const photoCount = (b.photoUrls ? b.photoUrls.length : 0) + (b.menuUrls ? b.menuUrls.length : 0);
+      const docParts = [];
+      if (b.licenseDocUrl) docParts.push(`📄 ${escapeHtml(b.licenseDocFilename || 'Ver licencia')}`);
+      if (photoCount > 0) docParts.push(`🖼️ ${photoCount} foto${photoCount === 1 ? '' : 's'}`);
+      const docCell = docParts.length
+        ? docParts.join('<br>')
         : '<span class="doc-none">Sin documentación</span>';
       return `
         <tr class="clickable" onclick="openPendingDetail('${escapeHtml(b.id)}')">
@@ -782,6 +804,9 @@ function openPendingDetail(id) {
     <span class="detail-label">Dirección</span>
     <span class="detail-value">${escapeHtml(b.address)}</span>
 
+    <span class="detail-label">Descripción</span>
+    <span class="detail-value">${b.description ? escapeHtml(b.description) : '<span class="doc-none">Sin descripción</span>'}</span>
+
     <span class="detail-label">Dueño</span>
     <span class="detail-value">
       <strong>${escapeHtml(b.ownerName || '—')}</strong>
@@ -794,6 +819,11 @@ function openPendingDetail(id) {
     <span class="detail-label">Documentación</span>
     <span class="detail-value">${docCell}</span>
   `;
+
+  renderBarImages('pending-detail-photos', b.photoUrls, 'Este bar no ha subido fotos.',
+                  { kind: 'photos', barId: b.id, view: 'pending' });
+  renderBarImages('pending-detail-menu', b.menuUrls, 'Este bar no ha subido la carta.',
+                  { kind: 'menu', barId: b.id, view: 'pending' });
 
   document.getElementById('pending-approve-btn').onclick = () => approve(id);
   document.getElementById('pending-reject-btn').onclick  = () => reject(id);
@@ -949,6 +979,13 @@ function openIncidentDetail(id) {
     <span class="detail-label">Mensaje</span>
     <span class="detail-value"><div class="detail-message">${escapeHtml(i.message)}</div></span>
 
+    ${(i.photoUrls && i.photoUrls.length) ? `
+    <span class="detail-label">Fotos adjuntas</span>
+    <span class="detail-value"><div class="img-grid">${i.photoUrls.map(u =>
+        `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="Foto de la incidencia"></a>`
+      ).join('')}</div></span>
+    ` : ''}
+
     <span class="detail-label">Fecha de envío</span>
     <span class="detail-value">${createdAt}</span>
 
@@ -1070,17 +1107,52 @@ function renderAllBars() {
   }).join('');
 }
 
-function renderBarImages(containerId, urls, emptyText) {
+function renderBarImages(containerId, urls, emptyText, deleteCtx) {
   const container = document.getElementById(containerId);
   if (!urls || urls.length === 0) {
     container.innerHTML = `<span style="color:var(--muted);font-size:0.9rem">${emptyText}</span>`;
     return;
   }
-  container.innerHTML = urls.map(url =>
-    `<a href="${url}" target="_blank" rel="noopener">
-       <img src="${url}" alt="Imagen del bar">
-     </a>`
-  ).join('');
+  container.innerHTML = urls.map(url => {
+    const fileId = url.substring(url.lastIndexOf('/') + 1);
+    const delBtn = deleteCtx
+      ? `<button class="img-del" title="Eliminar imagen"
+                 onclick="deleteBarImage('${deleteCtx.kind}','${escapeHtml(deleteCtx.barId)}','${escapeHtml(fileId)}','${deleteCtx.view}')">&times;</button>`
+      : '';
+    return `<div class="img-item">
+      <a href="${url}" target="_blank" rel="noopener"><img src="${url}" alt="Imagen del bar"></a>
+      ${delBtn}
+    </div>`;
+  }).join('');
+}
+
+async function deleteBarImage(kind, barId, fileId, view) {
+  if (!confirm('¿Eliminar esta imagen? Esta acción no se puede deshacer.')) return;
+  try {
+    const path = kind === 'menu'
+      ? `/api/admin/bars/${barId}/menu/${fileId}`
+      : `/api/admin/bars/${barId}/photos/${fileId}`;
+    const updated = await api(path, { method: 'DELETE' });
+    if (view === 'pending') {
+      const p = allPendingData.find(b => b.id === barId);
+      if (p) { p.photoUrls = updated.photoUrls; p.menuUrls = updated.menuUrls; }
+      renderBarImages('pending-detail-photos', updated.photoUrls, 'Este bar no ha subido fotos.',
+                      { kind: 'photos', barId, view: 'pending' });
+      renderBarImages('pending-detail-menu', updated.menuUrls, 'Este bar no ha subido la carta.',
+                      { kind: 'menu', barId, view: 'pending' });
+    } else {
+      const idx = allBarsData.findIndex(b => b.id === barId);
+      if (idx !== -1) allBarsData[idx] = updated;
+      renderBarImages('bar-edit-photos', updated.photoUrls, 'Este bar no ha subido fotos.',
+                      { kind: 'photos', barId, view: 'bars' });
+      renderBarImages('bar-edit-menu', updated.menuUrls, 'Este bar no ha subido la carta.',
+                      { kind: 'menu', barId, view: 'bars' });
+    }
+    showToast('Imagen eliminada', 'success');
+  } catch (e) {
+    console.error(e);
+    showToast('Error al eliminar la imagen', 'error');
+  }
 }
 
 function openBarDetail(id) {
@@ -1104,8 +1176,14 @@ function openBarDetail(id) {
     ? new Date(b.createdAt).toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'})
     : '—';
 
-  renderBarImages('bar-edit-photos', b.photoUrls, 'Este bar no ha subido fotos.');
-  renderBarImages('bar-edit-menu', b.menuUrls, 'Este bar no ha subido la carta.');
+  renderBarImages('bar-edit-photos', b.photoUrls, 'Este bar no ha subido fotos.',
+                  { kind: 'photos', barId: b.id, view: 'bars' });
+  renderBarImages('bar-edit-menu', b.menuUrls, 'Este bar no ha subido la carta.',
+                  { kind: 'menu', barId: b.id, view: 'bars' });
+
+  document.getElementById('bar-edit-license').innerHTML = b.licenseDocUrl
+    ? `<button class="doc-link" onclick="viewLicense('${escapeHtml(b.id)}')">📄 ${escapeHtml(b.licenseDocFilename || 'Ver licencia')}</button>`
+    : '<span style="color:var(--muted);font-size:0.9rem">Este bar no ha subido la licencia.</span>';
 
   document.getElementById('bar-save-btn').onclick   = () => saveBar(id);
   document.getElementById('bar-delete-btn').onclick = () => deleteBar(id);

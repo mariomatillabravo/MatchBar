@@ -17,6 +17,7 @@ public record BarAdminResponse(
         List<String> photoUrls,
         List<String> menuUrls,
         String licenseDocFilename,
+        String licenseDocUrl,
         Bar.Status status,
         String ownerName,
         String ownerEmail,

@@ -19,7 +19,8 @@
       "PowerShell(Get-Command *)",
       "PowerShell(Remove-Item *)",
       "Bash(gradle -v)",
-      "Bash(awk -F: '$1 > 600')"
+      "Bash(awk -F: '$1 > 600')",
+      "Bash(./mvnw -q -o compile)"
     ]
   }
 }

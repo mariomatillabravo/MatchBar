@@ -6,6 +6,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 @Document(collection = "incidents")
 @Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
@@ -25,6 +27,10 @@ public class Incident {
     private String subject;
 
     private String message;
+
+    /** Fotos adjuntas a la incidencia (ids de ficheros en GridFS). */
+    @Builder.Default
+    private List<String> photoFileIds = new ArrayList<>();
 
     @Builder.Default
     private Status status = Status.OPEN;

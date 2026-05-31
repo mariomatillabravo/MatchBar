@@ -38,7 +38,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/bars/images/**").permitAll()
                 .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                .requestMatchers("/admin.html", "/", "/favicon.ico").permitAll()
+                .requestMatchers("/admin.html", "/", "/favicon.ico", "/logo-letras.png").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

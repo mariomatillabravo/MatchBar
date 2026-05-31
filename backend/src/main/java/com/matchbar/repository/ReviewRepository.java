@@ -6,5 +6,6 @@ import java.util.List;
 
 public interface ReviewRepository extends MongoRepository<Review, String> {
     List<Review> findByBarIdOrderByCreatedAtDesc(String barId);
+    List<Review> findByUserIdOrderByCreatedAtDesc(String userId);
     boolean existsByUserIdAndBarId(String userId, String barId);
 }

@@ -53,6 +53,17 @@ class SessionStore(private val context: Context) {
         )
     }
 
+    /**
+     * Guarda únicamente el token, sin el rol. La sesión sigue considerándose
+     * nula (porque [session] exige también el rol), de modo que la navegación
+     * no cambia todavía, pero el interceptor ya puede autenticar peticiones.
+     * Útil durante el registro de un bar para subir fotos/licencia antes de
+     * completar la sesión.
+     */
+    suspend fun saveToken(token: String) {
+        context.dataStore.edit { prefs -> prefs[KEY_TOKEN] = token }
+    }
+
     suspend fun save(token: String, userId: String, email: String, name: String, role: Role) {
         context.dataStore.edit { prefs ->
             prefs[KEY_TOKEN] = token

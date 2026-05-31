@@ -32,9 +32,15 @@ public class MatchService {
     private final BarRepository barRepository;
     private final MongoTemplate mongoTemplate;
 
+    /** Margen tras el saque inicial durante el cual un partido sigue considerándose "en juego". */
+    private static final long IN_PROGRESS_GRACE_HOURS = 2;
+
     public List<MatchResponse> search(Instant from, Instant to, String competitionId, String teamId) {
         List<Criteria> parts = new ArrayList<>();
-        if (from != null) parts.add(Criteria.where("kickoffAt").gte(from));
+        // Si no se indica un límite inferior explícito, ocultamos los partidos ya
+        // jugados: solo mostramos los que aún no han empezado o están en juego.
+        Instant floor = from != null ? from : Instant.now().minus(IN_PROGRESS_GRACE_HOURS, ChronoUnit.HOURS);
+        parts.add(Criteria.where("kickoffAt").gte(floor));
         if (to != null) parts.add(Criteria.where("kickoffAt").lte(to));
         if (competitionId != null) parts.add(Criteria.where("competition.$id").is(new ObjectId(competitionId)));
         if (teamId != null) {

@@ -2,15 +2,18 @@ package com.matchbar.app.ui.screens.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Brightness6
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.ReportProblem
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,7 +32,8 @@ fun SettingsScreen(
     themeMode: ThemeMode,
     onThemeChange: (ThemeMode) -> Unit,
     onLogout: () -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onCreateIncident: (() -> Unit)? = null
 ) {
     Scaffold(
         topBar = {
@@ -114,6 +118,39 @@ fun SettingsScreen(
                         selected = themeMode == ThemeMode.DARK,
                         onClick = { onThemeChange(ThemeMode.DARK) }
                     )
+                }
+            }
+
+            onCreateIncident?.let { createIncident ->
+                Spacer(Modifier.height(24.dp))
+                SectionLabel("SOPORTE")
+                ElevatedCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(onClick = createIncident)
+                            .padding(horizontal = 16.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            Icons.Filled.ReportProblem, null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Spacer(Modifier.width(16.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text("Crear incidencia", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                "Comunica un problema o sugerencia",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 

@@ -40,6 +40,8 @@ import com.matchbar.app.ui.screens.bars.BarDetailScreen
 import com.matchbar.app.ui.screens.bars.BarDetailViewModel
 import com.matchbar.app.ui.screens.favorites.FavoritesScreen
 import com.matchbar.app.ui.screens.favorites.FavoritesViewModel
+import com.matchbar.app.ui.screens.incidents.CreateIncidentScreen
+import com.matchbar.app.ui.screens.incidents.IncidentViewModel
 import com.matchbar.app.ui.screens.map.AllBarsMapScreen
 import com.matchbar.app.ui.screens.map.AllBarsMapViewModel
 import com.matchbar.app.ui.screens.map.NearbyBarsScreen
@@ -47,6 +49,7 @@ import com.matchbar.app.ui.screens.map.NearbyBarsViewModel
 import com.matchbar.app.ui.screens.matches.MatchesScreen
 import com.matchbar.app.ui.screens.matches.MatchesViewModel
 import com.matchbar.app.ui.screens.profile.ProfileScreen
+import com.matchbar.app.ui.screens.profile.ProfileViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -73,6 +76,8 @@ fun AppNavigation(app: MatchBarApp) {
     val barMatchesFactory = remember { GenericFactory { BarMatchesViewModel(app.api) } }
     val barReviewsFactory = remember { GenericFactory { BarReviewsViewModel(app.api) } }
     val adminFactory = remember { GenericFactory { AdminViewModel(app.api) } }
+    val profileFactory = remember { GenericFactory { ProfileViewModel(app.api) } }
+    val incidentFactory = remember { GenericFactory { IncidentViewModel(app.api) } }
 
     val logout: () -> Unit = {
         scope.launch { app.sessionStore.clear() }
@@ -150,6 +155,7 @@ fun AppNavigation(app: MatchBarApp) {
             composable(Routes.PROFILE) {
                 ProfileScreen(
                     session = session,
+                    vmFactory = profileFactory,
                     onOpenSettings = { navController.navigate(Routes.SETTINGS) }
                 )
             }
@@ -189,6 +195,18 @@ fun AppNavigation(app: MatchBarApp) {
                     themeMode = themeMode,
                     onThemeChange = { mode -> scope.launch { app.sessionStore.setThemeMode(mode) } },
                     onLogout = logout,
+                    onBack = { navController.popBackStack() },
+                    // Bares y usuarios pueden crear incidencias; el admin no.
+                    onCreateIncident = if (session.role != Role.ADMIN) {
+                        { navController.navigate(Routes.INCIDENT_CREATE) }
+                    } else null
+                )
+            }
+
+            // ----- Crear incidencia (bares y usuarios) -----
+            composable(Routes.INCIDENT_CREATE) {
+                CreateIncidentScreen(
+                    vmFactory = incidentFactory,
                     onBack = { navController.popBackStack() }
                 )
             }

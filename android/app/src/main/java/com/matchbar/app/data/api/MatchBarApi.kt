@@ -2,6 +2,7 @@ package com.matchbar.app.data.api
 
 import com.matchbar.app.data.model.*
 import okhttp3.MultipartBody
+import okhttp3.RequestBody
 import retrofit2.http.*
 
 interface MatchBarApi {
@@ -89,6 +90,19 @@ interface MatchBarApi {
 
     @POST("api/bars/{id}/reviews")
     suspend fun addReview(@Path("id") id: String, @Body req: ReviewRequest): Review
+
+    // ----- Mis reseñas -----
+    @GET("api/users/me/reviews")
+    suspend fun myReviews(): List<MyReview>
+
+    // ----- Incidencias -----
+    @Multipart
+    @POST("api/incidents")
+    suspend fun submitIncident(
+        @Part("subject") subject: RequestBody,
+        @Part("message") message: RequestBody,
+        @Part photos: List<MultipartBody.Part>
+    )
 
     // ----- Favorites -----
     @GET("api/users/me/favorites")

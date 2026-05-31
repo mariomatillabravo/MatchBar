@@ -22,6 +22,7 @@ import com.matchbar.app.data.model.Bar
 import com.matchbar.app.ui.common.ErrorBox
 import com.matchbar.app.ui.common.LoadingBox
 import com.matchbar.app.util.barMarkerIcon
+import com.matchbar.app.util.userMarkerIcon
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.overlay.Marker
 
@@ -43,6 +44,7 @@ fun NearbyBarsScreen(
     val mapView = rememberMapViewWithLifecycle()
     val context = LocalContext.current
     val markerIcon = remember { barMarkerIcon(context) }
+    val userIcon = remember { userMarkerIcon(context) }
 
     // Bar seleccionado desde la lista (para resaltarlo y centrar el mapa en él).
     var selectedBarId by remember { mutableStateOf<String?>(null) }
@@ -100,6 +102,19 @@ fun NearbyBarsScreen(
                                         }
                                     }
                                     map.overlays.add(marker)
+                                }
+                                // Marcador del usuario (solo si tenemos su ubicación real).
+                                val uLat = state.userLat
+                                val uLng = state.userLng
+                                if (uLat != null && uLng != null) {
+                                    val me = Marker(map).apply {
+                                        position = GeoPoint(uLat, uLng)
+                                        title = "Tu ubicación"
+                                        icon = userIcon
+                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+                                        setOnMarkerClickListener { _, _ -> true }
+                                    }
+                                    map.overlays.add(me)
                                 }
                                 map.invalidate()
                             }

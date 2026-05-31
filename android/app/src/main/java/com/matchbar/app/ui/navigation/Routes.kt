@@ -14,6 +14,7 @@ object Routes {
     const val FAVORITES = "favorites"
     const val PROFILE = "profile"
     const val SETTINGS = "settings"
+    const val INCIDENT_CREATE = "incidents/create"
     const val MAP_ALL = "map-all"
     const val MAP = "map?matchId={matchId}"
     fun map(matchId: String?) = if (matchId == null) "map?matchId=" else "map?matchId=$matchId"

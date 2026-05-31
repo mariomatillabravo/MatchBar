@@ -13,6 +13,7 @@ import com.matchbar.exception.ApiException;
 import com.matchbar.repository.BarRepository;
 import com.matchbar.repository.UserRepository;
 import com.matchbar.service.BarService;
+import com.matchbar.service.ImageService;
 import com.matchbar.service.IncidentService;
 import com.matchbar.service.LicenseDocService;
 import jakarta.validation.Valid;
@@ -40,6 +41,7 @@ public class AdminController {
     private final BarService barService;
     private final IncidentService incidentService;
     private final LicenseDocService licenseDocService;
+    private final ImageService imageService;
     private final BarRepository barRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -98,6 +100,16 @@ public class AdminController {
     public ResponseEntity<Void> deleteBar(@PathVariable String id) {
         barService.adminDelete(id, licenseDocService);
         return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/bars/{barId}/photos/{fileId}")
+    public ResponseEntity<BarAdminResponse> deleteBarPhoto(@PathVariable String barId, @PathVariable String fileId) {
+        return ResponseEntity.ok(barService.adminRemovePhoto(barId, fileId, imageService));
+    }
+
+    @DeleteMapping("/bars/{barId}/menu/{fileId}")
+    public ResponseEntity<BarAdminResponse> deleteBarMenu(@PathVariable String barId, @PathVariable String fileId) {
+        return ResponseEntity.ok(barService.adminRemoveMenu(barId, fileId, imageService));
     }
 
     @GetMapping("/users")

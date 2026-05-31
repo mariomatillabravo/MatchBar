@@ -3,8 +3,10 @@ package com.matchbar.app.util
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import androidx.core.content.ContextCompat
 import com.matchbar.app.R
 
 /**
@@ -28,6 +30,22 @@ fun barMarkerIcon(context: Context, heightDp: Int = 56): Drawable {
     if (scaled != trimmed) trimmed.recycle()
 
     return BitmapDrawable(res, scaled)
+}
+
+/**
+ * Construye el icono que marca la posición del usuario en el mapa
+ * ([R.drawable.ic_user_location], un pin con una figura de persona).
+ * Rasteriza el vector al tamaño deseado para que osmdroid lo dibuje nítido.
+ */
+fun userMarkerIcon(context: Context, heightDp: Int = 48): Drawable {
+    val res = context.resources
+    val size = (heightDp * res.displayMetrics.density).toInt().coerceAtLeast(1)
+    val drawable = ContextCompat.getDrawable(context, R.drawable.ic_user_location)!!
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    drawable.setBounds(0, 0, size, size)
+    drawable.draw(canvas)
+    return BitmapDrawable(res, bitmap)
 }
 
 /** Recorta los márgenes totalmente transparentes de un bitmap. */

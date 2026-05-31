@@ -1,6 +1,5 @@
 package com.matchbar.service;
 
-import com.matchbar.dto.request.IncidentRequest;
 import com.matchbar.dto.response.IncidentResponse;
 import com.matchbar.entity.Incident;
 import com.matchbar.entity.User;
@@ -10,8 +9,10 @@ import com.matchbar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -20,17 +21,35 @@ public class IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final UserRepository userRepository;
+    private final ImageService imageService;
 
-    public IncidentResponse create(String userEmail, IncidentRequest req) {
+    public IncidentResponse create(String userEmail, String subject, String message, List<MultipartFile> photos) {
+        if (subject == null || subject.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "El asunto es obligatorio");
+        }
+        if (message == null || message.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "La descripción es obligatoria");
+        }
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        List<String> photoIds = new ArrayList<>();
+        if (photos != null) {
+            for (MultipartFile photo : photos) {
+                if (photo != null && !photo.isEmpty()) {
+                    photoIds.add(imageService.store(photo));
+                }
+            }
+        }
+
         Incident incident = Incident.builder()
                 .userId(user.getId())
                 .senderName(user.getName())
                 .senderEmail(user.getEmail())
                 .senderType(user.getRole())
-                .subject(req.subject())
-                .message(req.message())
+                .subject(subject.trim())
+                .message(message.trim())
+                .photoFileIds(photoIds)
                 .build();
         return IncidentResponse.from(incidentRepository.save(incident));
     }

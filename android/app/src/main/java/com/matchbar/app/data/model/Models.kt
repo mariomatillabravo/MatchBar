@@ -103,3 +103,16 @@ data class Team(
 data class LicenseUploadResponse(
     val filename: String
 )
+
+@Serializable
+data class MyReview(
+    val id: String,
+    val barId: String,
+    val barName: String,
+    val ratingAtmosphere: Int,
+    val ratingFood: Int,
+    val ratingPrice: Int,
+    val average: Double,
+    val comment: String? = null,
+    val createdAt: String
+)

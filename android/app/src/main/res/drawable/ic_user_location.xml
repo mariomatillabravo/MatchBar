@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <!-- Contorno del pin (azul oscuro) -->
+    <path
+        android:fillColor="#1565C0"
+        android:pathData="M24,1 C15.72,1 9,7.72 9,16 c0,11 15,31 15,31 s15,-20 15,-31 C39,7.72 32.28,1 24,1 Z" />
+    <!-- Cuerpo del pin (azul) -->
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M24,3 C16.82,3 11,8.82 11,16 c0,9.6 13,27.5 13,27.5 s13,-17.9 13,-27.5 C37,8.82 31.18,3 24,3 Z" />
+    <!-- Cabeza del personaje (blanca) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,10 m-4,0 a4,4 0 1,0 8,0 a4,4 0 1,0 -8,0 Z" />
+    <!-- Hombros / cuerpo del personaje (blanco) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M16,25 c0,-4.4 3.6,-7.5 8,-7.5 s8,3.1 8,7.5 Z" />
+</vector>

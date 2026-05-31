@@ -42,9 +42,11 @@ class NearbyBarsViewModel(
         _state.update { it.copy(loading = true, error = null) }
         runCatching {
             val location = getLastLocation()
+            // Guardamos solo la ubicación real (null si no hay), para no pintar el
+            // personaje del usuario sobre el fallback de Madrid.
+            _state.update { it.copy(userLat = location?.first, userLng = location?.second) }
             val lat = location?.first ?: DEFAULT_LAT
             val lng = location?.second ?: DEFAULT_LNG
-            _state.update { it.copy(userLat = lat, userLng = lng) }
             api.nearbyBars(lat, lng, _state.value.matchId, radiusMeters = 10_000)
         }.onSuccess { bars ->
             _state.update { it.copy(loading = false, bars = bars) }
@@ -58,9 +60,7 @@ class NearbyBarsViewModel(
         try {
             val client = LocationServices.getFusedLocationProviderClient(appContext)
             client.lastLocation
-                .addOnSuccessListener { loc ->
-                    cont.resume(loc?.let { it.latitude to it.longitude })
-                }
+                .addOnSuccessListener { loc -> cont.resume(loc?.let { it.latitude to it.longitude }) }
                 .addOnFailureListener { cont.resume(null) }
         } catch (e: SecurityException) {
             cont.resume(null)
