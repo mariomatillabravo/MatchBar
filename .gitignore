@@ -37,3 +37,6 @@ android/captures/
 
 # Env
 .env
+
+# Claude Code (local/machine-specific settings)
+.claude/settings.local.json
