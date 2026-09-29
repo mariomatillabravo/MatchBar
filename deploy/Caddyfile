@@ -1,0 +1,7 @@
+# Proxy HTTPS delante de la API (servicio "caddy" de docker-compose.yml,
+# perfil "tls"). Requisitos: MATCHBAR_DOMAIN en .env, un registro DNS que
+# apunte a este servidor y los puertos 80 y 443 abiertos.
+{$MATCHBAR_DOMAIN} {
+	encode gzip
+	reverse_proxy api:8080
+}

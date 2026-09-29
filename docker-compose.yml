@@ -1,16 +1,25 @@
-version: '3.8'
+# Configuración en .env (copia .env.example). Si falta una variable
+# obligatoria, `docker compose up` se detiene indicando cuál.
 
 services:
   mongo:
     image: mongo:7.0
     container_name: matchbar-mongo
     restart: unless-stopped
+    # Solo accesible desde esta máquina (lo usa el backend lanzado con Maven).
+    # No lo publiques en 0.0.0.0: la base de datos quedaría expuesta a la red.
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     volumes:
       - matchbar-mongo-data:/data/db
+      # Crea el usuario de la aplicación la primera vez (volumen vacío).
+      - ./docker/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
     environment:
       MONGO_INITDB_DATABASE: matchbar
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?Define MONGO_ROOT_PASSWORD en .env}
+      MONGO_APP_USER: ${MONGO_APP_USER:-matchbar}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?Define MONGO_APP_PASSWORD en .env}
 
   api:
     build: ./backend
@@ -19,10 +28,40 @@ services:
     depends_on:
       - mongo
     environment:
-      MONGODB_URI: mongodb://mongo:27017/matchbar
-      JWT_SECRET: cambia-esta-clave-en-produccion-debe-ser-larga-min-256-bits-1234567890
+      # "prod" por defecto. "dev" siembra datos de prueba con contraseñas públicas.
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-prod}
+      MONGODB_URI: mongodb://${MONGO_APP_USER:-matchbar}:${MONGO_APP_PASSWORD}@mongo:27017/matchbar?authSource=matchbar
+      JWT_SECRET: ${JWT_SECRET:?Define JWT_SECRET en .env (openssl rand -base64 48)}
+      FOOTBALL_API_KEY: ${FOOTBALL_API_KEY:-}
+      MATCHBAR_ADMIN_EMAIL: ${MATCHBAR_ADMIN_EMAIL:-}
+      MATCHBAR_ADMIN_PASSWORD: ${MATCHBAR_ADMIN_PASSWORD:-}
     ports:
-      - "8080:8080"
+      # 127.0.0.1 por defecto: el emulador Android llega igual (10.0.2.2 es el
+      # localhost del PC). Pon API_BIND=0.0.0.0 solo para probar con un móvil
+      # físico en tu red local.
+      - "${API_BIND:-127.0.0.1}:8080:8080"
+
+  # Proxy HTTPS opcional para un servidor con dominio propio. Obtiene y renueva
+  # el certificado automáticamente (Let's Encrypt):
+  #   docker compose --profile tls up -d
+  caddy:
+    image: caddy:2
+    container_name: matchbar-caddy
+    profiles: ["tls"]
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      MATCHBAR_DOMAIN: ${MATCHBAR_DOMAIN:-localhost}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
 
 volumes:
   matchbar-mongo-data:
+  caddy-data:
+  caddy-config:

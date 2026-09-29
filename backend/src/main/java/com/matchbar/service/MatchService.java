@@ -42,9 +42,9 @@ public class MatchService {
         Instant floor = from != null ? from : Instant.now().minus(IN_PROGRESS_GRACE_HOURS, ChronoUnit.HOURS);
         parts.add(Criteria.where("kickoffAt").gte(floor));
         if (to != null) parts.add(Criteria.where("kickoffAt").lte(to));
-        if (competitionId != null) parts.add(Criteria.where("competition.$id").is(new ObjectId(competitionId)));
+        if (competitionId != null) parts.add(Criteria.where("competition.$id").is(parseId(competitionId, "competitionId")));
         if (teamId != null) {
-            ObjectId tid = new ObjectId(teamId);
+            ObjectId tid = parseId(teamId, "teamId");
             parts.add(new Criteria().orOperator(
                     Criteria.where("homeTeam.$id").is(tid),
                     Criteria.where("awayTeam.$id").is(tid)
@@ -56,14 +56,32 @@ public class MatchService {
         query.with(Sort.by("kickoffAt").ascending());
 
         return mongoTemplate.find(query, Match.class).stream()
+                .filter(MatchService::isComplete)
                 .map(MatchResponse::from)
                 .collect(Collectors.toList());
     }
 
     public MatchResponse getById(String id) {
         Match m = matchRepository.findById(id)
+                .filter(MatchService::isComplete)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Partido no encontrado"));
         return MatchResponse.from(m);
+    }
+
+    /**
+     * Un partido sin competición o sin alguno de los equipos (rival aún por
+     * decidir, o referencia a un documento borrado) no se puede mostrar. Lo
+     * descartamos para que un solo partido incompleto no rompa el listado.
+     */
+    private static boolean isComplete(Match m) {
+        return m.getCompetition() != null && m.getHomeTeam() != null && m.getAwayTeam() != null;
+    }
+
+    private static ObjectId parseId(String id, String paramName) {
+        if (!ObjectId.isValid(id)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Valor no válido para '" + paramName + "'");
+        }
+        return new ObjectId(id);
     }
 
     public void scheduleBroadcast(String userId, String matchId) {
@@ -89,6 +107,7 @@ public class MatchService {
         Instant now = Instant.now();
         Instant until = now.plus(15, ChronoUnit.DAYS);
         return matchRepository.findAllById(matchIds).stream()
+                .filter(MatchService::isComplete)
                 .filter(m -> m.getKickoffAt() != null
                         && !m.getKickoffAt().isBefore(now)
                         && !m.getKickoffAt().isAfter(until))
@@ -105,6 +124,7 @@ public class MatchService {
                 .collect(Collectors.toList());
         if (matchIds.isEmpty()) return List.of();
         return matchRepository.findAllById(matchIds).stream()
+                .filter(MatchService::isComplete)
                 .map(MatchResponse::from)
                 .collect(Collectors.toList());
     }

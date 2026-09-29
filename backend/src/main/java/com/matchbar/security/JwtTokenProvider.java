@@ -15,12 +15,21 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
+    /** HMAC-SHA256 exige claves de al menos 256 bits. */
+    static final int MIN_SECRET_BYTES = 32;
+
     private final SecretKey key;
     private final long expirationMs;
 
-    public JwtTokenProvider(@Value("${matchbar.jwt.secret}") String secret,
+    public JwtTokenProvider(@Value("${matchbar.jwt.secret:}") String secret,
                             @Value("${matchbar.jwt.expiration-ms}") long expirationMs) {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        byte[] secretBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secretBytes.length < MIN_SECRET_BYTES) {
+            // Fallamos al arrancar: sin un secreto propio cualquiera podría firmar tokens.
+            throw new IllegalStateException("JWT_SECRET no está definido o es demasiado corto (mínimo "
+                    + MIN_SECRET_BYTES + " bytes). Genera uno con: openssl rand -base64 48");
+        }
+        this.key = Keys.hmacShaKeyFor(secretBytes);
         this.expirationMs = expirationMs;
     }
 

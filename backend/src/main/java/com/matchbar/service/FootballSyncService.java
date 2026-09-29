@@ -41,13 +41,17 @@ public class FootballSyncService {
             log.info("[FootballSync] Deshabilitado. Se usaran datos del DataSeeder.");
             return;
         }
+        if (!props.isActive()) {
+            log.warn("[FootballSync] FOOTBALL_API_KEY no configurada: la sincronizacion de partidos queda desactivada.");
+            return;
+        }
         syncAll();
     }
 
     @Scheduled(fixedRateString = "${matchbar.football.sync-interval-ms:43200000}",
                initialDelayString = "${matchbar.football.sync-interval-ms:43200000}")
     public void syncScheduled() {
-        if (!props.isEnabled()) return;
+        if (!props.isActive()) return;
         syncAll();
     }
 
@@ -108,14 +112,24 @@ public class FootballSyncService {
         }
 
         int count = 0;
+        int skipped = 0;
         for (FootballMatchDto dto : response.getBody().matches()) {
-            upsertMatch(dto);
-            count++;
+            if (upsertMatch(dto)) count++;
+            else skipped++;
         }
-        log.info("[FootballSync] {} partidos sincronizados para {}", count, code);
+        log.info("[FootballSync] {} partidos sincronizados para {} ({} omitidos por rival aun sin definir)",
+                count, code, skipped);
     }
 
-    private void upsertMatch(FootballMatchDto dto) {
+    /**
+     * Guarda o actualiza un partido. Devuelve false si se omite porque la API
+     * aún no conoce algún equipo (eliminatorias "por determinar"): se guardará
+     * en una sincronización posterior, cuando lleguen los dos rivales.
+     */
+    boolean upsertMatch(FootballMatchDto dto) {
+        if (dto.competition() == null || !hasId(dto.homeTeam()) || !hasId(dto.awayTeam())) {
+            return false;
+        }
         Competition comp = upsertCompetition(dto.competition());
         Team home = upsertTeam(dto.homeTeam(), comp.getId());
         Team away = upsertTeam(dto.awayTeam(), comp.getId());
@@ -131,6 +145,11 @@ public class FootballSyncService {
         match.setStatus(dto.status());
 
         matchRepository.save(match);
+        return true;
+    }
+
+    private static boolean hasId(FootballTeamDto team) {
+        return team != null && team.id() != null;
     }
 
     private Competition upsertCompetition(FootballCompetitionDto dto) {

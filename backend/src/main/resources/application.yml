@@ -18,16 +18,29 @@ spring:
 server:
   port: 8080
   error:
-    include-message: always
+    # Los mensajes de error de la API los genera GlobalExceptionHandler; aquí
+    # evitamos que la página /error de Spring exponga detalles internos.
+    include-message: never
 
+# Los secretos llegan SIEMPRE por variables de entorno (ver .env.example en la
+# raíz). No tienen valor por defecto: si faltan, la API no arranca o la
+# funcionalidad se desactiva con un aviso en el log.
 matchbar:
   jwt:
-    secret: ${JWT_SECRET:cambia-esta-clave-en-produccion-debe-ser-larga-min-256-bits-1234567890}
+    # Obligatorio, mínimo 32 bytes. Genera uno con: openssl rand -base64 48
+    secret: ${JWT_SECRET:}
     expiration-ms: 3600000  # 1 hora
 
+  # Primer administrador en entornos sin datos de prueba (ver AdminBootstrap).
+  # Solo se usa si todavía no existe ningún ADMIN.
+  bootstrap-admin:
+    email: ${MATCHBAR_ADMIN_EMAIL:}
+    password: ${MATCHBAR_ADMIN_PASSWORD:}
+
   football:
-    enabled: true
-    api-key: 5f32243c96fe49c9aefcf908cd94c095
+    enabled: ${FOOTBALL_SYNC_ENABLED:true}
+    # Sin API key la sincronización queda desactivada (FootballProperties#isActive).
+    api-key: ${FOOTBALL_API_KEY:}
     base-url: https://api.football-data.org/v4
     competition-codes: PD,PL,CL,BL1,SA,WC
     sync-days-ahead: 15

@@ -1,6 +1,8 @@
 package com.matchbar.config;
 
+import com.matchbar.security.JsonSecurityErrorHandler;
 import com.matchbar.security.JwtAuthFilter;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -26,6 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final JsonSecurityErrorHandler securityErrorHandler;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -33,7 +36,15 @@ public class SecurityConfig {
             .cors(c -> c.configurationSource(corsSource()))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // Sin esto Spring responde 403 también cuando falta el token o ha
+            // caducado, y los clientes no pueden saber que deben volver al login.
+            .exceptionHandling(e -> e
+                .authenticationEntryPoint(securityErrorHandler)
+                .accessDeniedHandler(securityErrorHandler))
             .authorizeHttpRequests(auth -> auth
+                // El reenvío interno a /error no debe volver a exigir sesión:
+                // taparía el error real con un 401.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/bars/images/**").permitAll()

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Solo builds debug: permite HTTP hacia el backend de desarrollo. -->
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- localhost del PC desde el emulador -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <!-- añade tu IP local si pruebas en dispositivo físico -->
+    </domain-config>
+</network-security-config>

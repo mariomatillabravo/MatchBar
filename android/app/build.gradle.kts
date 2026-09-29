@@ -5,6 +5,11 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose")   // ← AÑADE ESTA
 }
 
+// URL de la API para las builds release. Tiene que ser HTTPS y no se commitea:
+//   ./gradlew assembleRelease -Pmatchbar.releaseApiUrl=https://api.tudominio.com/
+// (o define matchbar.releaseApiUrl en ~/.gradle/gradle.properties).
+val releaseApiUrl: String = providers.gradleProperty("matchbar.releaseApiUrl").orNull ?: ""
+
 android {
     namespace = "com.matchbar.app"
     compileSdk = 34
@@ -16,13 +21,17 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // Cambia esta URL si despliegas el backend en otro sitio.
-        // 10.0.2.2 = localhost del PC desde el emulador Android.
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
     }
 
     buildTypes {
+        debug {
+            // 10.0.2.2 = localhost del PC desde el emulador Android. Para un móvil
+            // físico, pon aquí la IP de tu PC y añádela también a
+            // src/debug/res/xml/network_security_config.xml.
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/\"")
+        }
         release {
+            buildConfigField("String", "API_BASE_URL", "\"$releaseApiUrl\"")
             isMinifyEnabled = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
@@ -39,6 +48,15 @@ android {
     //composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
+    }
+}
+
+// Impide generar una release que envíe contraseñas y tokens sin cifrar.
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    doFirst {
+        check(releaseApiUrl.startsWith("https://")) {
+            "La build release necesita una URL HTTPS: -Pmatchbar.releaseApiUrl=https://api.tudominio.com/"
+        }
     }
 }
 

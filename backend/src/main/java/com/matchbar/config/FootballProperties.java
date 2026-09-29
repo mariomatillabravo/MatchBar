@@ -18,4 +18,9 @@ public class FootballProperties {
     private List<String> competitionCodes;
     private int syncDaysAhead = 7;
     private long syncIntervalMs = 43200000L;
+
+    /** La sincronización solo puede funcionar si está habilitada y hay API key. */
+    public boolean isActive() {
+        return enabled && apiKey != null && !apiKey.isBlank();
+    }
 }

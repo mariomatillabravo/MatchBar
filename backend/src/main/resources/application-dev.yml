@@ -1,0 +1,21 @@
+# Perfil de desarrollo local. Actívalo con SPRING_PROFILES_ACTIVE=dev
+# (o ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev).
+#
+# NUNCA lo uses en un servidor: activa DataSeeder, que crea usuarios de prueba
+# con contraseñas públicas (password123), incluido un ADMIN.
+
+spring:
+  config:
+    # Reutiliza el .env de la raíz del repo (el mismo que usa docker compose)
+    # para lanzar el backend con Maven contra el Mongo del contenedor. Se busca
+    # tanto si arrancas desde backend/ como desde la raíz.
+    import: "optional:file:.env[.properties],optional:file:../.env[.properties]"
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://${MONGO_APP_USER:matchbar}:${MONGO_APP_PASSWORD}@localhost:27017/matchbar?authSource=matchbar}
+
+matchbar:
+  jwt:
+    # Secreto solo válido en desarrollo: los tokens firmados con él no valen en
+    # ningún otro entorno porque allí JWT_SECRET es obligatorio y distinto.
+    secret: ${JWT_SECRET:dev-only-secret-no-usar-fuera-de-local-0123456789abcdef}

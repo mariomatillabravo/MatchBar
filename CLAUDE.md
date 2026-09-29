@@ -13,25 +13,33 @@ MatchBar is a full-stack app for finding bars that broadcast football matches. I
 ### Backend
 
 ```bash
-# Run with dev profile (MongoDB via Docker Compose)
-cd backend
-./mvnw spring-boot:run
+# First time: create .env from the template and fill in passwords + JWT_SECRET
+cp .env.example .env
 
-# Run with Docker (includes MongoDB 7.0)
+# Run with Docker (MongoDB 7.0 with auth + API). Profile comes from SPRING_PROFILES_ACTIVE in .env
 docker compose up --build
 
-# Run tests
-cd backend && ./mvnw test
+# Run with Maven against the Mongo container (dev profile reads the root .env)
+docker compose up -d mongo
+cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=dev
+
+# Run tests (no MongoDB needed)
+cd backend && mvn test
 ```
 
+No Maven/Gradle wrappers are committed yet (`mvnw`/`gradlew` missing), so use a local `mvn`/Android Studio.
+
 Backend runs on `http://localhost:8080`. Swagger UI at `/swagger-ui.html`, admin panel at `/admin.html`.
+
+Secrets (`JWT_SECRET`, `FOOTBALL_API_KEY`, Mongo credentials, `MATCHBAR_ADMIN_*`) come only from env vars — never add defaults for them in `application.yml`. The API refuses to start without a ≥32-byte `JWT_SECRET`.
 
 ### Android
 
 Open `/android` in Android Studio and run on emulator or device.
 
-- Emulator uses `10.0.2.2:8080` to reach localhost backend.
-- For a physical device, update `API_BASE_URL` in `app/build.gradle.kts` to your machine's LAN IP.
+- Debug builds use `http://10.0.2.2:8080/` (emulator → host localhost); cleartext is allowed only via `src/debug/res/xml/network_security_config.xml`.
+- For a physical device, change the `debug` `API_BASE_URL` in `app/build.gradle.kts` to your LAN IP, add it to the debug network security config, and set `API_BIND=0.0.0.0` in `.env`.
+- Release builds require `-Pmatchbar.releaseApiUrl=https://...`; `preReleaseBuild` fails otherwise.
 
 ## Architecture
 
@@ -54,7 +62,8 @@ Controller → Service → Repository → MongoDB
 - **Security**: `JwtAuthFilter` validates tokens before each request; `SecurityConfig` defines public vs. protected routes and CORS.
 - **Roles**: `USER`, `BAR`, `ADMIN`. Endpoints are protected with `@PreAuthorize` or security matchers.
 - **Geospatial**: Bars have a `GeoJsonPoint` location field with a 2D sphere index. `BarService` uses `NearQuery` for proximity searches.
-- **Seeding**: `DataSeeder.java` pre-populates MongoDB with test users, bars, matches, competitions, and teams on startup (dev profile).
+- **Seeding**: `DataSeeder.java` (`@Profile("dev")` only) pre-populates MongoDB with test users, bars, matches, competitions, and teams on startup. Outside `dev`, `AdminBootstrap.java` creates the first ADMIN from `MATCHBAR_ADMIN_EMAIL`/`MATCHBAR_ADMIN_PASSWORD`.
+- **Errors**: `GlobalExceptionHandler` maps exceptions to 4xx with the shared `ErrorResponses` JSON body; `JsonSecurityErrorHandler` returns 401 (missing/expired token) vs 403 (wrong role). Throw `ApiException` for business errors.
 
 Key files: `SecurityConfig.java`, `AuthService.java` (JWT generation/validation), `BarService.java` (geospatial logic), `application.yml` (MongoDB URI, JWT secret, port).
 
@@ -64,7 +73,7 @@ Key files: `SecurityConfig.java`, `AuthService.java` (JWT generation/validation)
 
 Bars reference a user (`userId`) for ownership. Matches reference competitions and teams via `@DBRef`.
 
-## Test Users (dev/seeded data)
+## Test Users (seeded only with the `dev` profile)
 
 | Email | Role | Password |
 |---|---|---|

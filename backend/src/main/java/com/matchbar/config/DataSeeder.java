@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -15,7 +16,14 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+/**
+ * Datos de prueba para desarrollo local. Solo se activa con el perfil "dev":
+ * crea usuarios con contraseñas públicas (incluido un ADMIN), así que jamás
+ * debe ejecutarse en un servidor. Fuera de dev, el primer admin lo crea
+ * {@link AdminBootstrap}.
+ */
 @Component
+@Profile("dev")
 @RequiredArgsConstructor
 public class DataSeeder implements ApplicationRunner {
 
@@ -119,9 +127,9 @@ public class DataSeeder implements ApplicationRunner {
                 .status(Bar.Status.REJECTED).build());
 
         // ── Competiciones, equipos, partidos y retransmisiones ─────────────────
-        // Solo se siembran datos fake cuando la sincronización con API externa está deshabilitada.
-        // Si football.enabled=true, FootballSyncService los carga via ApplicationReadyEvent.
-        if (!footballProperties.isEnabled()) {
+        // Solo se siembran datos fake cuando la sincronización con API externa no está activa
+        // (deshabilitada o sin API key). Si lo está, FootballSyncService los carga via ApplicationReadyEvent.
+        if (!footballProperties.isActive()) {
             Competition laliga    = competitionRepository.save(Competition.builder().name("LaLiga").country("España").build());
             Competition premier   = competitionRepository.save(Competition.builder().name("Premier League").country("Inglaterra").build());
             Competition champions = competitionRepository.save(Competition.builder().name("Champions League").country("Europa").build());
@@ -251,7 +259,7 @@ public class DataSeeder implements ApplicationRunner {
     }
 
     private void cleanFakeFootballDataIfNeeded() {
-        if (!footballProperties.isEnabled()) return;
+        if (!footballProperties.isActive()) return;
         boolean hasFakeData = competitionRepository.findAll().stream()
                 .anyMatch(c -> c.getExternalId() == null);
         if (!hasFakeData) return;

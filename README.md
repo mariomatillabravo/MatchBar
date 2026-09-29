@@ -59,34 +59,27 @@ matchbar/
 
 ## Cómo arrancar el backend
 
-### Opción A — Con Maven y H2 (la más rápida para desarrollo)
+Guía completa en [EJECUTAR.MD](EJECUTAR.MD). En resumen:
 
 ```bash
-cd backend
-./mvnw spring-boot:run
+cp .env.example .env        # rellena contraseñas y JWT_SECRET (ver comentarios)
+docker compose up --build   # MongoDB 7 + API en http://localhost:8080
 ```
 
-(Si no tienes el wrapper de Maven, ejecuta `mvn spring-boot:run`).
+Los secretos se leen **solo** de variables de entorno (`.env`, fuera de git) y la API
+no arranca sin `JWT_SECRET`. Hay dos perfiles:
 
-El backend levanta en `http://localhost:8080` con perfil `dev`. Esto significa:
+- `prod` (por defecto): sin datos de prueba. El primer admin se crea con
+  `MATCHBAR_ADMIN_EMAIL` / `MATCHBAR_ADMIN_PASSWORD`.
+- `dev`: siembra los usuarios de prueba de la tabla siguiente. Solo para tu máquina.
 
-- Base de datos H2 en memoria (se reinicia cada arranque).
-- Datos de prueba precargados desde `data-dev.sql` (3 bares, 5 partidos, etc.).
-- Consola H2 en `http://localhost:8080/h2-console` (JDBC URL: `jdbc:h2:mem:matchbar`).
-- Swagger UI en `http://localhost:8080/swagger-ui.html`.
-- Panel admin en `http://localhost:8080/admin.html`.
+Swagger UI en `http://localhost:8080/swagger-ui.html` y panel admin en
+`http://localhost:8080/admin.html`.
 
-### Opción B — Con Docker (incluye MySQL real)
+### Usuarios de prueba (solo perfil dev)
 
-```bash
-docker compose up --build
-```
-
-Levanta dos contenedores: la API en `:8080` y MySQL en `:3306`.
-
-### Usuarios de prueba (perfil dev)
-
-Todos tienen contraseña: **`password123`**
+Todos tienen contraseña: **`password123`**. Se crean únicamente con
+`SPRING_PROFILES_ACTIVE=dev`; en `prod` no existen.
 
 | Email                  | Rol   | Notas                            |
 |------------------------|-------|----------------------------------|
