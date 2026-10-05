@@ -21,13 +21,17 @@ docker compose up --build
 
 # Run with Maven against the Mongo container (dev profile reads the root .env)
 docker compose up -d mongo
-cd backend && mvn spring-boot:run -Dspring-boot.run.profiles=dev
+cd backend && ./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
 
 # Run tests (no MongoDB needed)
-cd backend && mvn test
+cd backend && ./mvnw verify
 ```
 
-No Maven/Gradle wrappers are committed yet (`mvnw`/`gradlew` missing), so use a local `mvn`/Android Studio.
+Use the wrappers (`backend/mvnw`, `android/gradlew`; `.cmd`/`.bat` on Windows) — they pin Maven 3.9.9 and Gradle 8.7 with checksums. Only JDK 21 is required locally.
+
+### CI and secret scanning
+
+`.github/workflows/ci.yml` runs on every PR and push to `main`: backend `./mvnw verify`, Android `assembleDebug testDebugUnitTest`, and gitleaks over the full git history (`.gitleaks.toml` adds a football-data token rule). `.gitleaksignore` lists only already-rotated historical findings — never add a live secret there; rotate it instead.
 
 Backend runs on `http://localhost:8080`. Swagger UI at `/swagger-ui.html`, admin panel at `/admin.html`.
 

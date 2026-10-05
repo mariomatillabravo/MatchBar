@@ -2,11 +2,12 @@
 target/
 *.class
 *.jar
+# El jar del wrapper de Gradle sí se versiona: sin él ./gradlew no funciona.
+!**/gradle/wrapper/gradle-wrapper.jar
 *.war
 hs_err_pid*
 
-# Maven
-.mvn/
+# Maven: .mvn/wrapper se versiona (configuración del wrapper ./mvnw).
 
 # IDE
 .idea/

@@ -1,0 +1,18 @@
+# Normaliza finales de línea en el repositorio (LF) independientemente del
+# sistema de cada desarrollador.
+* text=auto
+
+# Scripts que se ejecutan en Linux/macOS (CI, Docker): siempre LF, incluso en
+# un checkout de Windows; con CRLF fallan con "bad interpreter".
+*.sh      text eol=lf
+mvnw      text eol=lf
+gradlew   text eol=lf
+
+# Scripts de Windows: siempre CRLF.
+*.cmd     text eol=crlf
+*.bat     text eol=crlf
+
+# Binarios.
+*.jar     binary
+*.png     binary
+*.pdf     binary

@@ -39,10 +39,13 @@ docker compose up
 ```bash
 docker compose up -d mongo
 cd backend
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev     # en PowerShell: .\mvnw.cmd ...
 ```
 
 El perfil `dev` lee el `.env` de la raíz, así que usa las mismas credenciales de Mongo.
+Solo necesitas el JDK 21: el wrapper descarga y verifica Maven automáticamente.
+
+Tests del backend (no necesitan MongoDB): `./mvnw verify`.
 
 ## URLs
 

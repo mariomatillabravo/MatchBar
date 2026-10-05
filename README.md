@@ -157,7 +157,7 @@ bares pendientes con botones para aprobar o rechazar cada uno.
 - [ ] Notificaciones push con Firebase Cloud Messaging.
 - [ ] Tests de integración del backend.
 - [ ] Tests de UI con Compose Testing.
-- [ ] CI con GitHub Actions.
+- [x] CI con GitHub Actions (backend, Android y escaneo de secretos con gitleaks).
 - [ ] Refresh tokens.
 
 ---

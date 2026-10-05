@@ -1,0 +1,11 @@
+# Hallazgos de gitleaks ya resueltos que siguen en el historial de git.
+# Solo deben añadirse aquí secretos que ya no sirven (rotados o retirados).
+#
+# Secreto JWT por defecto antiguo ("cambia-esta-clave..."). Retirado en la
+# Fase 0: JWT_SECRET ahora es obligatorio, sin valor por defecto.
+17bd69a1beb81cc1698ab4188fa1f10e44f26165:docker-compose.yml:generic-api-key:29
+8e56c198464bdb0a050e15f3b613c70a4608c74b:CLAUDE.md:generic-api-key:165
+
+# Token antiguo de football-data.org. Rotado tras la Fase 0; ahora se lee de
+# FOOTBALL_API_KEY.
+534b646a168483b61326c64f9466bd0e9b61f871:backend/src/main/resources/application.yml:matchbar-football-data-token:20

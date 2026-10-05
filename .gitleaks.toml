@@ -1,0 +1,12 @@
+# Configuración de gitleaks: reglas por defecto + las específicas del proyecto.
+[extend]
+useDefault = true
+
+# Las reglas genéricas no detectaban el token de football-data.org (32 hex),
+# que llegó a commitearse en application.yml.
+[[rules]]
+id = "matchbar-football-data-token"
+description = "Token de la API de football-data.org"
+regex = '''(?i)(?:football|api[-_]?key|x-auth-token)[^\n]{0,20}?['"=:\s]+([0-9a-f]{32})\b'''
+secretGroup = 1
+keywords = ["api-key", "api_key", "apikey", "x-auth-token", "football"]
