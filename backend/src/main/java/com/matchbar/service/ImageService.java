@@ -12,34 +12,35 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Set;
 
-/** Almacena y sirve imágenes (fotos del bar y carta) usando GridFS. */
+/**
+ * Almacena y sirve imágenes (fotos del bar, carta e incidencias) usando
+ * GridFS. Todo lo que se guarda pasa antes por {@link ImageSanitizer}.
+ */
 @Service
 @RequiredArgsConstructor
 public class ImageService {
 
-    private static final Set<String> ALLOWED = Set.of(
-            "image/jpeg", "image/jpg", "image/png", "image/webp");
-
     private final GridFsTemplate gridFsTemplate;
+    private final ImageSanitizer imageSanitizer;
 
     public String store(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Imagen vacía");
         }
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED.contains(contentType.toLowerCase())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "La imagen debe ser JPG, PNG o WEBP");
-        }
-        try (InputStream is = file.getInputStream()) {
-            ObjectId id = gridFsTemplate.store(is, file.getOriginalFilename(), contentType);
-            return id.toHexString();
+        byte[] original;
+        try {
+            original = file.getBytes();
         } catch (IOException e) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al almacenar la imagen");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "No se ha podido leer la imagen");
         }
+        // El tipo lo decide el contenido, no el Content-Type que declara el cliente.
+        ImageSanitizer.SanitizedImage clean = imageSanitizer.sanitize(original);
+        ObjectId id = gridFsTemplate.store(new ByteArrayInputStream(clean.data()),
+                file.getOriginalFilename(), clean.contentType());
+        return id.toHexString();
     }
 
     public GridFsResource load(String fileId) {

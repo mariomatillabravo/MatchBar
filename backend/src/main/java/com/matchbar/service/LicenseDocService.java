@@ -1,6 +1,7 @@
 package com.matchbar.service;
 
 import com.matchbar.exception.ApiException;
+import com.matchbar.util.FileSignatures;
 import com.mongodb.client.gridfs.model.GridFSFile;
 import lombok.RequiredArgsConstructor;
 import org.bson.types.ObjectId;
@@ -13,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -25,16 +25,17 @@ public class LicenseDocService {
         if (file == null || file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Fichero vacío");
         }
-        String contentType = file.getContentType();
-        if (contentType == null || !contentType.equalsIgnoreCase("application/pdf")) {
+        byte[] data;
+        try {
+            data = file.getBytes();
+        } catch (IOException e) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "No se ha podido leer el fichero");
+        }
+        // Comprobamos la firma "%PDF-" del contenido: el Content-Type lo elige el cliente.
+        if (!FileSignatures.isPdf(data)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "El fichero debe ser un PDF");
         }
-        try (InputStream is = file.getInputStream()) {
-            ObjectId id = gridFsTemplate.store(is, file.getOriginalFilename(), "application/pdf");
-            return id.toHexString();
-        } catch (IOException e) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al almacenar el fichero");
-        }
+        return store(data, file.getOriginalFilename());
     }
 
     public String store(byte[] data, String filename) {
