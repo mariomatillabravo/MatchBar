@@ -7,21 +7,36 @@ import com.matchbar.entity.User;
 import com.matchbar.exception.ApiException;
 import com.matchbar.repository.UserRepository;
 import com.matchbar.security.JwtTokenProvider;
-import lombok.RequiredArgsConstructor;
+import com.matchbar.security.LoginAttemptGuard;
+import com.matchbar.util.Emails;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
-@RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
+    private final LoginAttemptGuard loginAttempts;
+    /** Hash con el que se compara cuando el email no existe (ver login). */
+    private final String dummyPasswordHash;
+
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder,
+                       JwtTokenProvider tokenProvider, LoginAttemptGuard loginAttempts) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.tokenProvider = tokenProvider;
+        this.loginAttempts = loginAttempts;
+        this.dummyPasswordHash = passwordEncoder.encode(UUID.randomUUID().toString());
+    }
 
     public AuthResponse register(RegisterRequest req) {
-        if (userRepository.existsByEmail(req.email())) {
+        String email = Emails.normalize(req.email());
+        if (userRepository.existsByEmail(email)) {
             throw new ApiException(HttpStatus.CONFLICT, "Ya existe un usuario con ese email");
         }
         User.Role role = req.role() != null ? req.role() : User.Role.USER;
@@ -29,7 +44,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.FORBIDDEN, "No se puede registrar como ADMIN");
         }
         User user = User.builder()
-                .email(req.email())
+                .email(email)
                 .password(passwordEncoder.encode(req.password()))
                 .name(req.name())
                 .role(role)
@@ -39,11 +54,19 @@ public class AuthService {
     }
 
     public AuthResponse login(LoginRequest req) {
-        User user = userRepository.findByEmail(req.email())
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas"));
-        if (!passwordEncoder.matches(req.password(), user.getPassword())) {
+        String email = Emails.normalize(req.email());
+        loginAttempts.checkNotBlocked(email);
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        // Comparamos siempre contra un hash BCrypt, aunque el email no exista,
+        // para que el tiempo de respuesta no revele qué emails están registrados.
+        String hash = user != null ? user.getPassword() : dummyPasswordHash;
+        boolean valid = passwordEncoder.matches(req.password(), hash) && user != null;
+        if (!valid) {
+            loginAttempts.onFailure(email);
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
+        loginAttempts.onSuccess(email);
         return toResponse(user);
     }
 

@@ -17,6 +17,9 @@ spring:
 
 server:
   port: 8080
+  # Detrás del proxy HTTPS (Caddy) usa X-Forwarded-For/-Proto para conocer la
+  # IP real del cliente (límite de peticiones) y que la petición es https.
+  forward-headers-strategy: native
   error:
     # Los mensajes de error de la API los genera GlobalExceptionHandler; aquí
     # evitamos que la página /error de Spring exponga detalles internos.
@@ -30,6 +33,13 @@ matchbar:
     # Obligatorio, mínimo 32 bytes. Genera uno con: openssl rand -base64 48
     secret: ${JWT_SECRET:}
     expiration-ms: 3600000  # 1 hora
+
+  # Protección del login/registro (AuthRateLimitFilter, LoginAttemptGuard).
+  rate-limit:
+    login-per-minute: 30            # por IP
+    register-per-hour: 20           # por IP
+    login-failures-per-account: 5   # fallos seguidos antes de bloquear la cuenta...
+    login-lockout-minutes: 15       # ...durante este tiempo
 
   # Primer administrador en entornos sin datos de prueba (ver AdminBootstrap).
   # Solo se usa si todavía no existe ningún ADMIN.

@@ -2,6 +2,7 @@ package com.matchbar.config;
 
 import com.matchbar.entity.User;
 import com.matchbar.repository.UserRepository;
+import com.matchbar.util.Emails;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
@@ -34,7 +35,7 @@ public class AdminBootstrap implements ApplicationRunner {
                           @Value("${matchbar.bootstrap-admin.password:}") String password) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.email = email.trim();
+        this.email = Emails.normalize(email);
         this.password = password;
     }
 

@@ -48,11 +48,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * de seguridad real con los servicios simulados (no necesita MongoDB).
  */
 @WebMvcTest(controllers = {MatchController.class, BarController.class, AuthController.class},
-        properties = "matchbar.jwt.secret=" + ApiErrorHandlingTest.SECRET)
+        properties = "matchbar.jwt.secret=" + TestSecrets.JWT_SECRET)
 @Import({SecurityConfig.class, JsonSecurityErrorHandler.class, JwtTokenProvider.class})
 class ApiErrorHandlingTest {
 
-    static final String SECRET = "secreto-de-test-con-mas-de-32-bytes-0123456789";
+    static final String SECRET = TestSecrets.JWT_SECRET;
 
     @Autowired MockMvc mvc;
     @Autowired JwtTokenProvider tokenProvider;

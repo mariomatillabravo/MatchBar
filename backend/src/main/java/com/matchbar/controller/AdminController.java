@@ -16,6 +16,7 @@ import com.matchbar.service.BarService;
 import com.matchbar.service.ImageService;
 import com.matchbar.service.IncidentService;
 import com.matchbar.service.LicenseDocService;
+import com.matchbar.util.Emails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
@@ -134,11 +135,12 @@ public class AdminController {
     public ResponseEntity<UserAdminResponse> updateUser(@PathVariable String id, @Valid @RequestBody UserAdminUpdateRequest req) {
         User u = userRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        if (!u.getEmail().equalsIgnoreCase(req.email()) && userRepository.existsByEmail(req.email())) {
+        String email = Emails.normalize(req.email());
+        if (!u.getEmail().equals(email) && userRepository.existsByEmail(email)) {
             throw new ApiException(HttpStatus.CONFLICT, "Ya existe un usuario con ese email");
         }
         u.setName(req.name());
-        u.setEmail(req.email());
+        u.setEmail(email);
         u.setRole(req.role());
         if (req.password() != null && !req.password().isBlank()) {
             u.setPassword(passwordEncoder.encode(req.password()));
