@@ -41,6 +41,12 @@ matchbar:
     login-failures-per-account: 5   # fallos seguidos antes de bloquear la cuenta...
     login-lockout-minutes: 15       # ...durante este tiempo
 
+  cors:
+    # Orígenes web autorizados a llamar a la API desde otro dominio, separados
+    # por comas (admite patrones como https://*.midominio.com). Vacío = ninguno:
+    # el panel admin se sirve desde la propia API y Android no usa CORS.
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+
   # Primer administrador en entornos sin datos de prueba (ver AdminBootstrap).
   # Solo se usa si todavía no existe ningún ADMIN.
   bootstrap-admin:
@@ -64,6 +70,11 @@ matchbar:
     # Sesga los resultados a un país (códigos ISO separados por coma). Vacío = mundial.
     country-codes: es
 
+# Swagger UI y /v3/api-docs describen toda la API: desactivados salvo en dev
+# o si se pide explícitamente con SWAGGER_ENABLED=true.
 springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:false}
   swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}
     path: /swagger-ui.html

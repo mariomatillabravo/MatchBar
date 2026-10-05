@@ -50,7 +50,7 @@ Tests del backend (no necesitan MongoDB): `./mvnw verify`.
 ## URLs
 
 - Panel admin: http://localhost:8080/admin.html
-- Swagger: http://localhost:8080/swagger-ui.html
+- Swagger: http://localhost:8080/swagger-ui.html (solo con el perfil `dev` o `SWAGGER_ENABLED=true`)
 
 ## App Android
 

@@ -73,7 +73,7 @@ no arranca sin `JWT_SECRET`. Hay dos perfiles:
   `MATCHBAR_ADMIN_EMAIL` / `MATCHBAR_ADMIN_PASSWORD`.
 - `dev`: siembra los usuarios de prueba de la tabla siguiente. Solo para tu máquina.
 
-Swagger UI en `http://localhost:8080/swagger-ui.html` y panel admin en
+Swagger UI (solo perfil `dev`) en `http://localhost:8080/swagger-ui.html` y panel admin en
 `http://localhost:8080/admin.html`.
 
 ### Usuarios de prueba (solo perfil dev)

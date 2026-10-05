@@ -33,7 +33,7 @@ Use the wrappers (`backend/mvnw`, `android/gradlew`; `.cmd`/`.bat` on Windows) �
 
 `.github/workflows/ci.yml` runs on every PR and push to `main`: backend `./mvnw verify`, Android `assembleDebug testDebugUnitTest`, and gitleaks over the full git history (`.gitleaks.toml` adds a football-data token rule). `.gitleaksignore` lists only already-rotated historical findings — never add a live secret there; rotate it instead.
 
-Backend runs on `http://localhost:8080`. Swagger UI at `/swagger-ui.html`, admin panel at `/admin.html`.
+Backend runs on `http://localhost:8080`. Admin panel at `/admin.html`. Swagger UI at `/swagger-ui.html` only in the `dev` profile (or `SWAGGER_ENABLED=true`). CORS is closed by default (`CORS_ALLOWED_ORIGINS`); the admin panel is same-origin.
 
 Secrets (`JWT_SECRET`, `FOOTBALL_API_KEY`, Mongo credentials, `MATCHBAR_ADMIN_*`) come only from env vars — never add defaults for them in `application.yml`. The API refuses to start without a ≥32-byte `JWT_SECRET`.
 

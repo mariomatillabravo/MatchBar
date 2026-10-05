@@ -4,6 +4,7 @@ import com.matchbar.security.JsonSecurityErrorHandler;
 import com.matchbar.security.JwtAuthFilter;
 import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,9 +32,9 @@ public class SecurityConfig {
     private final JsonSecurityErrorHandler securityErrorHandler;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, CorsConfigurationSource corsSource) throws Exception {
         http
-            .cors(c -> c.configurationSource(corsSource()))
+            .cors(c -> c.configurationSource(corsSource))
             .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             // Sin esto Spring responde 403 también cuando falta el token o ha
@@ -56,13 +57,19 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Orígenes web (navegador) que pueden llamar a la API desde otro dominio.
+     * El panel admin se sirve desde la propia API y la app Android no usa
+     * CORS, así que en producción la lista está vacía salvo que se configure.
+     */
     @Bean
-    public CorsConfigurationSource corsSource() {
+    public CorsConfigurationSource corsSource(@Value("${matchbar.cors.allowed-origins:}") List<String> allowedOrigins) {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.setAllowedOriginPatterns(List.of("*"));
+        cfg.setAllowedOriginPatterns(allowedOrigins.stream().map(String::trim).filter(s -> !s.isEmpty()).toList());
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
-        cfg.setAllowCredentials(true);
+        cfg.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        // El JWT viaja en la cabecera Authorization, no en cookies.
+        cfg.setAllowCredentials(false);
         UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
         src.registerCorsConfiguration("/**", cfg);
         return src;

@@ -19,3 +19,12 @@ matchbar:
     # Secreto solo válido en desarrollo: los tokens firmados con él no valen en
     # ningún otro entorno porque allí JWT_SECRET es obligatorio y distinto.
     secret: ${JWT_SECRET:dev-only-secret-no-usar-fuera-de-local-0123456789abcdef}
+  cors:
+    # Permite probar un frontend servido en otro puerto de tu máquina.
+    allowed-origins: "http://localhost:[*],http://127.0.0.1:[*]"
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
