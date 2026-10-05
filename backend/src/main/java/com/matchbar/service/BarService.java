@@ -49,15 +49,23 @@ public class BarService {
         }
         Bar bar = barRepository.findByUserId(userId).orElseGet(() ->
                 Bar.builder().userId(userId).build());
+        boolean nameChanged = !sameText(bar.getName(), req.name());
+        boolean addressChanged = !sameText(bar.getAddress(), req.address());
+
+        // El admin aprobó un nombre y una dirección concretos: si cambian, el bar
+        // vuelve a revisión. Un bar rechazado que edita su ficha se reenvía.
+        if (bar.getStatus() == Bar.Status.REJECTED
+                || (bar.getStatus() == Bar.Status.APPROVED && (nameChanged || addressChanged))) {
+            bar.setStatus(Bar.Status.PENDING);
+        }
+
         bar.setName(req.name());
         bar.setDescription(req.description());
 
         // El dueño solo escribe la dirección; aquí la geocodificamos a lat/lng.
         // Solo llamamos a Nominatim si la dirección es nueva o ha cambiado, para
         // evitar peticiones innecesarias al guardar otros campos.
-        boolean needsGeocoding = bar.getLocation() == null
-                || !req.address().trim().equalsIgnoreCase(
-                        bar.getAddress() == null ? "" : bar.getAddress().trim());
+        boolean needsGeocoding = bar.getLocation() == null || addressChanged;
         bar.setAddress(req.address());
         if (needsGeocoding) {
             applyGeocodedLocation(bar, req.address());
@@ -66,6 +74,13 @@ public class BarService {
         if (req.ownerPhone() != null) bar.setOwnerPhone(req.ownerPhone());
         bar = barRepository.save(bar);
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
+    }
+
+    /** Igualdad ignorando espacios exteriores y mayúsculas ("calle mayor 1" == "Calle Mayor 1 "). */
+    private static boolean sameText(String current, String updated) {
+        String a = current == null ? "" : current.trim();
+        String b = updated == null ? "" : updated.trim();
+        return a.equalsIgnoreCase(b);
     }
 
     /** Resuelve la dirección a coordenadas y las vuelca en la entidad (lat, lng y punto geoespacial). */
