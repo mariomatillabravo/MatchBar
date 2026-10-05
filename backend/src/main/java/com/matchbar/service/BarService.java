@@ -76,6 +76,15 @@ public class BarService {
         bar.setLocation(new GeoJsonPoint(coords.longitude(), coords.latitude()));
     }
 
+    /**
+     * Solo las fotos y la carta de los bares son públicas; cualquier otra
+     * imagen de GridFS (p. ej. las adjuntas a incidencias) no se sirve por
+     * el endpoint público aunque se conozca su id.
+     */
+    public boolean isPublicBarImage(String fileId) {
+        return barRepository.existsByImageFileId(fileId);
+    }
+
     public BarResponse getById(String id) {
         Bar bar = barRepository.findById(id)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));

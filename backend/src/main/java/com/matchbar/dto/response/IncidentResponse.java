@@ -16,11 +16,11 @@ public record IncidentResponse(
         Instant resolvedAt,
         List<String> photoUrls
 ) {
-    private static final String IMG_PATH = "/api/bars/images/";
-
     public static IncidentResponse from(Incident i) {
+        // Endpoint privado (solo ADMIN): estas fotos pueden contener datos personales.
+        String base = "/api/admin/incidents/" + i.getId() + "/photos/";
         List<String> photos = (i.getPhotoFileIds() == null) ? List.of()
-                : i.getPhotoFileIds().stream().map(id -> IMG_PATH + id).toList();
+                : i.getPhotoFileIds().stream().map(id -> base + id).toList();
         return new IncidentResponse(
                 i.getId(),
                 i.getSenderName(),

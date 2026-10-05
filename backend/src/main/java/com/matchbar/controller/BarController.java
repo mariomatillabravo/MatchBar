@@ -5,6 +5,7 @@ import com.matchbar.dto.request.ReviewRequest;
 import com.matchbar.dto.response.BarResponse;
 import com.matchbar.dto.response.MatchResponse;
 import com.matchbar.dto.response.ReviewResponse;
+import com.matchbar.exception.ApiException;
 import com.matchbar.security.UserPrincipal;
 import com.matchbar.service.BarService;
 import com.matchbar.service.ImageService;
@@ -14,9 +15,7 @@ import com.matchbar.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
-import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -134,15 +133,16 @@ public class BarController {
         return ResponseEntity.ok(barService.removeMenuPhoto(me.getId(), fileId, imageService));
     }
 
-    /** Sirve una imagen del bar. Público para que los clientes (Coil) puedan cargarla sin token. */
+    /**
+     * Sirve una foto o una página de la carta de un bar. Público para que los
+     * clientes (Coil) puedan cargarla sin token; el resto de imágenes no se
+     * sirven aquí (ver BarService#isPublicBarImage).
+     */
     @GetMapping("/images/{fileId}")
     public ResponseEntity<InputStreamResource> image(@PathVariable String fileId) throws IOException {
-        GridFsResource resource = imageService.load(fileId);
-        String contentType = resource.getContentType();
-        MediaType mediaType = contentType != null
-                ? MediaType.parseMediaType(contentType) : MediaType.IMAGE_JPEG;
-        return ResponseEntity.ok()
-                .contentType(mediaType)
-                .body(new InputStreamResource(resource.getInputStream()));
+        if (!barService.isPublicBarImage(fileId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Imagen no encontrada");
+        }
+        return ImageResponses.of(imageService.load(fileId));
     }
 }

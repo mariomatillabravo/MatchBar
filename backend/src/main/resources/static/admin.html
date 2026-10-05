@@ -877,6 +877,29 @@ async function viewLicense(barId) {
   }
 }
 
+/* Las fotos de incidencias son privadas (solo ADMIN). <img src> no puede
+   enviar el token, así que se descargan con fetch y se muestran como blob. */
+async function loadPrivateImages(container) {
+  for (const img of container.querySelectorAll('img[data-src]')) {
+    try {
+      const res = await fetch(`${API}${img.dataset.src}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error(`Error ${res.status}`);
+      img.src = URL.createObjectURL(await res.blob());
+    } catch (e) {
+      console.error(e);
+      img.alt = 'No se pudo cargar la foto';
+    }
+  }
+}
+
+function openPrivateImage(event, link) {
+  event.preventDefault();
+  const img = link.querySelector('img');
+  if (img && img.src) window.open(img.src, '_blank');
+}
+
 /* ── Incidencias ─────────────────────────────────────────── */
 
 async function loadIncidents() {
@@ -982,7 +1005,7 @@ function openIncidentDetail(id) {
     ${(i.photoUrls && i.photoUrls.length) ? `
     <span class="detail-label">Fotos adjuntas</span>
     <span class="detail-value"><div class="img-grid">${i.photoUrls.map(u =>
-        `<a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="Foto de la incidencia"></a>`
+        `<a href="#" onclick="openPrivateImage(event, this)"><img data-src="${escapeHtml(u)}" alt="Foto de la incidencia"></a>`
       ).join('')}</div></span>
     ` : ''}
 
@@ -994,6 +1017,7 @@ function openIncidentDetail(id) {
     <span class="detail-value">${resolvedAt}</span>
     ` : ''}
   `;
+  loadPrivateImages(document.getElementById('detail-grid'));
 
   const actions = document.getElementById('detail-actions');
   const resolveBtn = i.status === 'OPEN'

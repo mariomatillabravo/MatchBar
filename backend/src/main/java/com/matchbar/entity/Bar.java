@@ -6,6 +6,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexType;
 import org.springframework.data.mongodb.core.index.GeoSpatialIndexed;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
@@ -41,11 +42,13 @@ public class Bar {
 
     private String licenseDocFilename;
 
-    /** Fotos del establecimiento (ids de ficheros en GridFS). */
+    /** Fotos del establecimiento (ids de ficheros en GridFS). Indexado: el endpoint público de imágenes lo consulta. */
+    @Indexed
     @Builder.Default
     private List<String> photoFileIds = new ArrayList<>();
 
     /** Carta del bar: una o varias imágenes (ids de ficheros en GridFS). */
+    @Indexed
     @Builder.Default
     private List<String> menuFileIds = new ArrayList<>();
 

@@ -163,6 +163,12 @@ public class AdminController {
         return ResponseEntity.ok(incidentService.listAll());
     }
 
+    @GetMapping("/incidents/{id}/photos/{fileId}")
+    public ResponseEntity<InputStreamResource> incidentPhoto(@PathVariable String id,
+                                                             @PathVariable String fileId) throws IOException {
+        return ImageResponses.of(incidentService.loadPhoto(id, fileId));
+    }
+
     @PatchMapping("/incidents/{id}/resolve")
     public ResponseEntity<IncidentResponse> resolveIncident(@PathVariable String id) {
         return ResponseEntity.ok(incidentService.resolve(id));

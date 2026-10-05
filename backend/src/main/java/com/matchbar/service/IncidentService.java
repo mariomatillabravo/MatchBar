@@ -7,6 +7,7 @@ import com.matchbar.exception.ApiException;
 import com.matchbar.repository.IncidentRepository;
 import com.matchbar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -57,6 +58,16 @@ public class IncidentService {
     public List<IncidentResponse> listAll() {
         return incidentRepository.findAllByOrderByCreatedAtDesc()
                 .stream().map(IncidentResponse::from).toList();
+    }
+
+    /** Foto adjunta a una incidencia (solo para el panel de administración). */
+    public GridFsResource loadPhoto(String incidentId, String fileId) {
+        Incident incident = incidentRepository.findById(incidentId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Incidencia no encontrada"));
+        if (incident.getPhotoFileIds() == null || !incident.getPhotoFileIds().contains(fileId)) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Imagen no encontrada");
+        }
+        return imageService.load(fileId);
     }
 
     public IncidentResponse resolve(String id) {
