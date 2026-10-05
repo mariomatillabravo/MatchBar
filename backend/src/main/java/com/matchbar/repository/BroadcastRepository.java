@@ -9,4 +9,5 @@ public interface BroadcastRepository extends MongoRepository<Broadcast, String> 
     List<Broadcast> findByMatchId(String matchId);
     boolean existsByBarIdAndMatchId(String barId, String matchId);
     void deleteByBarIdAndMatchId(String barId, String matchId);
+    void deleteByBarId(String barId);
 }

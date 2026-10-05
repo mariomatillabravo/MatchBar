@@ -5,6 +5,7 @@ import com.matchbar.entity.Bar;
 import com.matchbar.entity.User;
 import com.matchbar.repository.BarRepository;
 import com.matchbar.repository.BroadcastRepository;
+import com.matchbar.repository.FavoriteRepository;
 import com.matchbar.repository.ReviewRepository;
 import com.matchbar.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,10 +19,13 @@ import org.mockito.quality.Strictness;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,6 +38,9 @@ class BarServiceTest {
     @Mock BroadcastRepository broadcastRepository;
     @Mock MongoTemplate mongoTemplate;
     @Mock GeocodingService geocodingService;
+    @Mock ImageService imageService;
+    @Mock LicenseDocService licenseDocService;
+    @Mock FavoriteRepository favoriteRepository;
     @InjectMocks BarService barService;
 
     private Bar bar;
@@ -93,6 +100,25 @@ class BarServiceTest {
         save("El Rincón del Hincha", "Calle Bravo Murillo 56, Madrid", "Hemos corregido la licencia");
 
         assertEquals(Bar.Status.PENDING, bar.getStatus());
+    }
+
+    @Test
+    void borrarUnBarEliminaTodoLoQueDependeDeEl() {
+        bar.setPhotoFileIds(new ArrayList<>(List.of("foto1", "foto2")));
+        bar.setMenuFileIds(new ArrayList<>(List.of("carta1")));
+        bar.setLicenseDocFileId("licencia1");
+        when(barRepository.findById("b1")).thenReturn(Optional.of(bar));
+
+        barService.deleteBar("b1");
+
+        verify(barRepository).delete(bar);
+        verify(broadcastRepository).deleteByBarId("b1");
+        verify(favoriteRepository).deleteByBarId("b1");
+        verify(reviewRepository).deleteByBarId("b1");
+        verify(imageService).delete("foto1");
+        verify(imageService).delete("foto2");
+        verify(imageService).delete("carta1");
+        verify(licenseDocService).delete("licencia1");
     }
 
     private void save(String name, String address, String description) {

@@ -8,30 +8,25 @@ import com.matchbar.dto.response.IncidentResponse;
 import com.matchbar.dto.response.PendingBarResponse;
 import com.matchbar.dto.response.UserAdminResponse;
 import com.matchbar.entity.Bar;
-import com.matchbar.entity.User;
-import com.matchbar.exception.ApiException;
-import com.matchbar.repository.BarRepository;
-import com.matchbar.repository.UserRepository;
+import com.matchbar.security.UserPrincipal;
 import com.matchbar.service.BarService;
-import com.matchbar.service.ImageService;
 import com.matchbar.service.IncidentService;
-import com.matchbar.service.LicenseDocService;
-import com.matchbar.util.Emails;
+import com.matchbar.service.UserAdminService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-import java.util.Comparator;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -41,11 +36,7 @@ public class AdminController {
 
     private final BarService barService;
     private final IncidentService incidentService;
-    private final LicenseDocService licenseDocService;
-    private final ImageService imageService;
-    private final BarRepository barRepository;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final UserAdminService userAdminService;
 
     @GetMapping("/bars/pending")
     public ResponseEntity<List<PendingBarResponse>> pending() {
@@ -53,7 +44,7 @@ public class AdminController {
     }
 
     @GetMapping("/bars/stats")
-    public ResponseEntity<java.util.Map<String, Long>> stats() {
+    public ResponseEntity<Map<String, Long>> stats() {
         return ResponseEntity.ok(barService.getStatusStats());
     }
 
@@ -69,17 +60,16 @@ public class AdminController {
 
     @GetMapping("/bars/{id}/license")
     public ResponseEntity<InputStreamResource> downloadLicense(@PathVariable String id) throws IOException {
-        Bar bar = barRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
-        if (bar.getLicenseDocFileId() == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Este bar no tiene licencia adjunta");
-        }
-        var resource = licenseDocService.load(bar.getLicenseDocFileId());
-        String filename = bar.getLicenseDocFilename() != null ? bar.getLicenseDocFilename() : "licencia.pdf";
+        BarService.LicenseFile license = barService.loadLicense(id);
+        // El nombre lo eligió quien subió el fichero: ContentDisposition lo
+        // codifica (RFC 5987) para que comillas o saltos de línea no rompan la cabecera.
+        ContentDisposition disposition = ContentDisposition.inline()
+                .filename(license.filename(), StandardCharsets.UTF_8)
+                .build();
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
-                .body(new InputStreamResource(resource.getInputStream()));
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(new InputStreamResource(license.resource().getInputStream()));
     }
 
     @GetMapping("/bars/all")
@@ -99,62 +89,40 @@ public class AdminController {
 
     @DeleteMapping("/bars/{id}")
     public ResponseEntity<Void> deleteBar(@PathVariable String id) {
-        barService.adminDelete(id, licenseDocService);
+        barService.deleteBar(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/bars/{barId}/photos/{fileId}")
     public ResponseEntity<BarAdminResponse> deleteBarPhoto(@PathVariable String barId, @PathVariable String fileId) {
-        return ResponseEntity.ok(barService.adminRemovePhoto(barId, fileId, imageService));
+        return ResponseEntity.ok(barService.adminRemovePhoto(barId, fileId));
     }
 
     @DeleteMapping("/bars/{barId}/menu/{fileId}")
     public ResponseEntity<BarAdminResponse> deleteBarMenu(@PathVariable String barId, @PathVariable String fileId) {
-        return ResponseEntity.ok(barService.adminRemoveMenu(barId, fileId, imageService));
+        return ResponseEntity.ok(barService.adminRemoveMenu(barId, fileId));
     }
 
     @GetMapping("/users")
     public ResponseEntity<List<UserAdminResponse>> allUsers() {
-        List<UserAdminResponse> users = userRepository.findAll().stream()
-                .filter(u -> u.getRole() != User.Role.BAR)
-                .sorted(Comparator.comparing(User::getCreatedAt,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
-                .map(u -> new UserAdminResponse(u.getId(), u.getName(), u.getEmail(), u.getRole(), u.getCreatedAt()))
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(users);
+        return ResponseEntity.ok(userAdminService.listUsers());
     }
 
     @GetMapping("/users/{id}")
     public ResponseEntity<UserAdminResponse> getUser(@PathVariable String id) {
-        User u = userRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        return ResponseEntity.ok(new UserAdminResponse(u.getId(), u.getName(), u.getEmail(), u.getRole(), u.getCreatedAt()));
+        return ResponseEntity.ok(userAdminService.get(id));
     }
 
     @PutMapping("/users/{id}")
-    public ResponseEntity<UserAdminResponse> updateUser(@PathVariable String id, @Valid @RequestBody UserAdminUpdateRequest req) {
-        User u = userRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-        String email = Emails.normalize(req.email());
-        if (!u.getEmail().equals(email) && userRepository.existsByEmail(email)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Ya existe un usuario con ese email");
-        }
-        u.setName(req.name());
-        u.setEmail(email);
-        u.setRole(req.role());
-        if (req.password() != null && !req.password().isBlank()) {
-            u.setPassword(passwordEncoder.encode(req.password()));
-        }
-        u = userRepository.save(u);
-        return ResponseEntity.ok(new UserAdminResponse(u.getId(), u.getName(), u.getEmail(), u.getRole(), u.getCreatedAt()));
+    public ResponseEntity<UserAdminResponse> updateUser(@PathVariable String id,
+                                                        @Valid @RequestBody UserAdminUpdateRequest req,
+                                                        @AuthenticationPrincipal UserPrincipal me) {
+        return ResponseEntity.ok(userAdminService.update(id, req, me.getId()));
     }
 
     @DeleteMapping("/users/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
-        if (!userRepository.existsById(id)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
-        }
-        userRepository.deleteById(id);
+    public ResponseEntity<Void> deleteUser(@PathVariable String id, @AuthenticationPrincipal UserPrincipal me) {
+        userAdminService.delete(id, me.getId());
         return ResponseEntity.noContent().build();
     }
 

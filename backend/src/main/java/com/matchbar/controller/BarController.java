@@ -9,7 +9,6 @@ import com.matchbar.exception.ApiException;
 import com.matchbar.security.UserPrincipal;
 import com.matchbar.service.BarService;
 import com.matchbar.service.ImageService;
-import com.matchbar.service.LicenseDocService;
 import com.matchbar.service.MatchService;
 import com.matchbar.service.ReviewService;
 import jakarta.validation.Valid;
@@ -33,7 +32,6 @@ public class BarController {
 
     private final BarService barService;
     private final ReviewService reviewService;
-    private final LicenseDocService licenseDocService;
     private final ImageService imageService;
     private final MatchService matchService;
 
@@ -95,7 +93,7 @@ public class BarController {
     public ResponseEntity<Map<String, String>> uploadLicense(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal me) {
-        String filename = barService.replaceLicense(me.getId(), file, licenseDocService);
+        String filename = barService.replaceLicense(me.getId(), file);
         return ResponseEntity.ok(Map.of("filename", filename));
     }
 
@@ -106,7 +104,7 @@ public class BarController {
     public ResponseEntity<BarResponse> addPhoto(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(barService.addPhoto(me.getId(), file, imageService));
+        return ResponseEntity.ok(barService.addPhoto(me.getId(), file));
     }
 
     @DeleteMapping("/me/photos/{fileId}")
@@ -114,7 +112,7 @@ public class BarController {
     public ResponseEntity<BarResponse> removePhoto(
             @PathVariable String fileId,
             @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(barService.removePhoto(me.getId(), fileId, imageService));
+        return ResponseEntity.ok(barService.removePhoto(me.getId(), fileId));
     }
 
     @PostMapping(value = "/me/menu", consumes = "multipart/form-data")
@@ -122,7 +120,7 @@ public class BarController {
     public ResponseEntity<BarResponse> addMenuPhoto(
             @RequestParam("file") MultipartFile file,
             @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(barService.addMenuPhoto(me.getId(), file, imageService));
+        return ResponseEntity.ok(barService.addMenuPhoto(me.getId(), file));
     }
 
     @DeleteMapping("/me/menu/{fileId}")
@@ -130,7 +128,7 @@ public class BarController {
     public ResponseEntity<BarResponse> removeMenuPhoto(
             @PathVariable String fileId,
             @AuthenticationPrincipal UserPrincipal me) {
-        return ResponseEntity.ok(barService.removeMenuPhoto(me.getId(), fileId, imageService));
+        return ResponseEntity.ok(barService.removeMenuPhoto(me.getId(), fileId));
     }
 
     /**

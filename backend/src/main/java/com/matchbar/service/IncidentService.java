@@ -79,9 +79,9 @@ public class IncidentService {
     }
 
     public void delete(String id) {
-        if (!incidentRepository.existsById(id)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Incidencia no encontrada");
-        }
-        incidentRepository.deleteById(id);
+        Incident incident = incidentRepository.findById(id)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Incidencia no encontrada"));
+        incidentRepository.delete(incident);
+        if (incident.getPhotoFileIds() != null) incident.getPhotoFileIds().forEach(imageService::delete);
     }
 }

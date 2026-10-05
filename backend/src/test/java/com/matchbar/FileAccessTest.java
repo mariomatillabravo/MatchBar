@@ -5,14 +5,13 @@ import com.matchbar.controller.AdminController;
 import com.matchbar.controller.BarController;
 import com.matchbar.entity.User;
 import com.matchbar.exception.ApiException;
-import com.matchbar.repository.BarRepository;
 import com.matchbar.repository.UserRepository;
 import com.matchbar.security.JsonSecurityErrorHandler;
 import com.matchbar.security.JwtTokenProvider;
 import com.matchbar.service.BarService;
 import com.matchbar.service.ImageService;
 import com.matchbar.service.IncidentService;
-import com.matchbar.service.LicenseDocService;
+import com.matchbar.service.UserAdminService;
 import com.matchbar.service.MatchService;
 import com.matchbar.service.ReviewService;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,28 +28,30 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-/** Quién puede ver cada imagen guardada en GridFS. */
+/** Quién puede ver cada fichero guardado en GridFS (imágenes y licencias). */
 @WebMvcTest(controllers = {BarController.class, AdminController.class},
         properties = "matchbar.jwt.secret=" + TestSecrets.JWT_SECRET)
 @Import({SecurityConfig.class, JsonSecurityErrorHandler.class, JwtTokenProvider.class})
-class ImageAccessTest {
+class FileAccessTest {
 
     @Autowired MockMvc mvc;
     @Autowired JwtTokenProvider tokenProvider;
 
     @MockBean UserRepository userRepository;
-    @MockBean BarRepository barRepository;
+    @MockBean UserAdminService userAdminService;
     @MockBean BarService barService;
     @MockBean ReviewService reviewService;
-    @MockBean LicenseDocService licenseDocService;
     @MockBean ImageService imageService;
     @MockBean MatchService matchService;
     @MockBean IncidentService incidentService;
@@ -109,6 +110,24 @@ class ImageAccessTest {
 
         mvc.perform(get("/api/admin/incidents/i1/photos/f-ajena").header("Authorization", adminToken))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void unNombreDeLicenciaMaliciosoNoRompeLaCabeceraContentDisposition() throws Exception {
+        // Nombre elegido por quien subió el fichero: comillas y salto de línea
+        // intentando inyectar otra cabecera.
+        String evil = "licencia\".pdf\r\nX-Injected: 1";
+        GridFsResource pdf = image("application/pdf");
+        when(barService.loadLicense("b1")).thenReturn(new BarService.LicenseFile(pdf, evil));
+
+        String header = mvc.perform(get("/api/admin/bars/b1/license").header("Authorization", adminToken))
+                .andExpect(status().isOk())
+                .andExpect(header().doesNotExist("X-Injected"))
+                .andReturn().getResponse().getHeader("Content-Disposition");
+
+        assertFalse(header.contains("\r") || header.contains("\n"), header);
+        assertTrue(header.startsWith("inline;"), header);
+        assertTrue(header.contains("filename*=UTF-8''"), header);
     }
 
     private String tokenFor(User user) {

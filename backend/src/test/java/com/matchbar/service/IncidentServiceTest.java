@@ -39,6 +39,16 @@ class IncidentServiceTest {
     }
 
     @Test
+    void borrarUnaIncidenciaBorraTambienSusFotos() {
+        when(incidentRepository.findById("i1")).thenReturn(Optional.of(incident));
+
+        service.delete("i1");
+
+        verify(incidentRepository).delete(incident);
+        verify(imageService).delete("f1");
+    }
+
+    @Test
     void noSirveUnaFotoDeOtraIncidenciaAunqueSeConozcaSuId() {
         when(incidentRepository.findById("i1")).thenReturn(Optional.of(incident));
 

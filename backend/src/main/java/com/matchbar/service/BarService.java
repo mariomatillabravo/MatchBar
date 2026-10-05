@@ -10,6 +10,7 @@ import com.matchbar.entity.User;
 import com.matchbar.exception.ApiException;
 import com.matchbar.repository.BarRepository;
 import com.matchbar.repository.BroadcastRepository;
+import com.matchbar.repository.FavoriteRepository;
 import com.matchbar.repository.ReviewRepository;
 import com.matchbar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.geo.GeoJsonPoint;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.NearQuery;
+import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,6 +42,9 @@ public class BarService {
     private final BroadcastRepository broadcastRepository;
     private final MongoTemplate mongoTemplate;
     private final GeocodingService geocodingService;
+    private final ImageService imageService;
+    private final LicenseDocService licenseDocService;
+    private final FavoriteRepository favoriteRepository;
 
     public BarResponse createOrUpdateForUser(String userId, BarUpsertRequest req) {
         User user = userRepository.findById(userId)
@@ -179,7 +184,7 @@ public class BarService {
 
     private static final int MAX_PHOTOS = 8;
 
-    public BarResponse addPhoto(String userId, MultipartFile file, ImageService imageService) {
+    public BarResponse addPhoto(String userId, MultipartFile file) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
         if (bar.getPhotoFileIds() == null) bar.setPhotoFileIds(new java.util.ArrayList<>());
@@ -192,7 +197,7 @@ public class BarService {
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
     }
 
-    public BarResponse removePhoto(String userId, String fileId, ImageService imageService) {
+    public BarResponse removePhoto(String userId, String fileId) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
         if (bar.getPhotoFileIds() != null && bar.getPhotoFileIds().remove(fileId)) {
@@ -204,7 +209,7 @@ public class BarService {
 
     private static final int MAX_MENU_PHOTOS = 8;
 
-    public BarResponse addMenuPhoto(String userId, MultipartFile file, ImageService imageService) {
+    public BarResponse addMenuPhoto(String userId, MultipartFile file) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
         if (bar.getMenuFileIds() == null) bar.setMenuFileIds(new java.util.ArrayList<>());
@@ -216,7 +221,7 @@ public class BarService {
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
     }
 
-    public BarResponse removeMenuPhoto(String userId, String fileId, ImageService imageService) {
+    public BarResponse removeMenuPhoto(String userId, String fileId) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
         if (bar.getMenuFileIds() != null && bar.getMenuFileIds().remove(fileId)) {
@@ -226,7 +231,7 @@ public class BarService {
         return BarResponse.from(bar, null, computeAverage(bar.getId()));
     }
 
-    public String replaceLicense(String userId, MultipartFile file, LicenseDocService licenseDocService) {
+    public String replaceLicense(String userId, MultipartFile file) {
         Bar bar = barRepository.findByUserId(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Aún no has creado tu ficha de bar"));
         if (bar.getLicenseDocFileId() != null) {
@@ -278,7 +283,7 @@ public class BarService {
         return toAdminResponse(bar, owner);
     }
 
-    public BarAdminResponse adminRemovePhoto(String barId, String fileId, ImageService imageService) {
+    public BarAdminResponse adminRemovePhoto(String barId, String fileId) {
         Bar bar = barRepository.findById(barId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
         if (bar.getPhotoFileIds() != null && bar.getPhotoFileIds().remove(fileId)) {
@@ -289,7 +294,7 @@ public class BarService {
         return toAdminResponse(bar, owner);
     }
 
-    public BarAdminResponse adminRemoveMenu(String barId, String fileId, ImageService imageService) {
+    public BarAdminResponse adminRemoveMenu(String barId, String fileId) {
         Bar bar = barRepository.findById(barId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
         if (bar.getMenuFileIds() != null && bar.getMenuFileIds().remove(fileId)) {
@@ -300,13 +305,37 @@ public class BarService {
         return toAdminResponse(bar, owner);
     }
 
-    public void adminDelete(String barId, LicenseDocService licenseDocService) {
+    public void deleteBar(String barId) {
         Bar bar = barRepository.findById(barId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
-        if (bar.getLicenseDocFileId() != null) {
-            licenseDocService.delete(bar.getLicenseDocFileId());
-        }
+        deleteWithDependents(bar);
+    }
+
+    /**
+     * Borra el bar y todo lo que cuelga de él: emisiones, favoritos, reseñas,
+     * fotos, carta y licencia. El bar se borra primero: si algo falla a mitad,
+     * lo que queda son restos invisibles, no un bar publicado con datos rotos.
+     */
+    public void deleteWithDependents(Bar bar) {
         barRepository.delete(bar);
+        broadcastRepository.deleteByBarId(bar.getId());
+        favoriteRepository.deleteByBarId(bar.getId());
+        reviewRepository.deleteByBarId(bar.getId());
+        if (bar.getPhotoFileIds() != null) bar.getPhotoFileIds().forEach(imageService::delete);
+        if (bar.getMenuFileIds() != null) bar.getMenuFileIds().forEach(imageService::delete);
+        licenseDocService.delete(bar.getLicenseDocFileId());
+    }
+
+    public record LicenseFile(GridFsResource resource, String filename) {}
+
+    public LicenseFile loadLicense(String barId) {
+        Bar bar = barRepository.findById(barId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bar no encontrado"));
+        if (bar.getLicenseDocFileId() == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Este bar no tiene licencia adjunta");
+        }
+        String filename = bar.getLicenseDocFilename() != null ? bar.getLicenseDocFilename() : "licencia.pdf";
+        return new LicenseFile(licenseDocService.load(bar.getLicenseDocFileId()), filename);
     }
 
     private static final String IMG_PATH = "/api/bars/images/";
