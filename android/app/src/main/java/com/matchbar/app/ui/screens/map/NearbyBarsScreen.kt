@@ -91,10 +91,8 @@ fun NearbyBarsScreen(
                                         position = GeoPoint(bar.latitude, bar.longitude)
                                         title = bar.name
                                         snippet = bar.address
-                                        markerIcon?.let {
-                                            icon = it
-                                            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                        }
+                                        icon = markerIcon
+                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                         // Tocar el pin del mapa abre la ficha del bar.
                                         setOnMarkerClickListener { _, _ ->
                                             onBarClick(bar)

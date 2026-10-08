@@ -23,7 +23,7 @@ import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.SportsBar
@@ -251,7 +251,7 @@ fun RegisterScreen(
                                 onAdd = { pickMenus.launch("image/*") },
                                 onRemove = vm::removeMenu,
                                 addLabel = "Añadir fotos de la carta",
-                                addIcon = Icons.Filled.MenuBook
+                                addIcon = Icons.AutoMirrored.Filled.MenuBook
                             )
 
                             Spacer(Modifier.height(16.dp))

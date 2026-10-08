@@ -1,8 +1,7 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.serialization")
-    id("org.jetbrains.kotlin.plugin.compose")   // ← AÑADE ESTA
+    id("org.jetbrains.kotlin.plugin.compose")
 }
 
 // URL de la API para las builds release. Tiene que ser HTTPS y no se commitea:
@@ -10,17 +9,39 @@ plugins {
 // (o define matchbar.releaseApiUrl en ~/.gradle/gradle.properties).
 val releaseApiUrl: String = providers.gradleProperty("matchbar.releaseApiUrl").orNull ?: ""
 
+/** Valor de ~/.gradle/gradle.properties (-P) o, si no, de una variable de entorno (CI). */
+fun secret(property: String, env: String): String? =
+    providers.gradleProperty(property).orElse(providers.environmentVariable(env)).orNull
+
+// Firma de la release (ver README). Si no se configura, assembleRelease genera
+// un APK sin firmar: sirve para comprobar el build, no para publicar.
+val keystorePath = secret("matchbar.keystore.path", "MATCHBAR_KEYSTORE_PATH")
+
 android {
     namespace = "com.matchbar.app"
-    compileSdk = 34
+    // compileSdk solo fija contra qué APIs se compila (Compose 1.12 y lifecycle
+    // 2.11 exigen 37); el comportamiento de Android lo decide targetSdk.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.matchbar.app"
         minSdk = 26
-        targetSdk = 34
+        // Google Play exige API 36 para apps nuevas y actualizaciones desde el 31/08/2026.
+        targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        if (keystorePath != null) {
+            create("release") {
+                storeFile = file(keystorePath)
+                storePassword = secret("matchbar.keystore.password", "MATCHBAR_KEYSTORE_PASSWORD")
+                keyAlias = secret("matchbar.key.alias", "MATCHBAR_KEY_ALIAS")
+                keyPassword = secret("matchbar.key.password", "MATCHBAR_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -32,20 +53,22 @@ android {
         }
         release {
             buildConfigField("String", "API_BASE_URL", "\"$releaseApiUrl\"")
-            isMinifyEnabled = false
+            // R8: reduce y ofusca el código y elimina recursos no usados.
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            signingConfigs.findByName("release")?.let { signingConfig = it }
         }
     }
     compileOptions {
+        // Con Kotlin integrado en AGP 9, el jvmTarget de Kotlin sigue a este valor.
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
     buildFeatures {
         compose = true
         buildConfig = true
     }
-    //composeOptions { kotlinCompilerExtensionVersion = "1.5.14" }
     packaging {
         resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" }
     }
@@ -61,7 +84,7 @@ tasks.matching { it.name == "preReleaseBuild" }.configureEach {
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.09.02")
+    val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
     androidTestImplementation(composeBom)
 
@@ -71,25 +94,26 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.activity:activity-compose:1.9.2")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.6")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.6")
+    implementation("androidx.activity:activity-compose:1.13.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0") // LocalLifecycleOwner
 
     // Navigation
-    implementation("androidx.navigation:navigation-compose:2.8.2")
+    implementation("androidx.navigation:navigation-compose:2.10.2")
 
     // Networking: Retrofit + OkHttp + Kotlinx Serialization
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-kotlinx-serialization:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:1.0.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.11.0")
 
     // Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
 
     // DataStore (almacenamiento del JWT)
-    implementation("androidx.datastore:datastore-preferences:1.1.1")
+    implementation("androidx.datastore:datastore-preferences:1.2.1")
 
     // Coil (imágenes)
     implementation("io.coil-kt:coil-compose:2.7.0")
@@ -97,12 +121,15 @@ dependencies {
     // Mapas: OpenStreetMap vía osmdroid (gratis, sin API key)
     implementation("org.osmdroid:osmdroid-android:6.1.20")
     // Ubicación del dispositivo (FusedLocationProvider; no requiere API key de mapas)
-    implementation("com.google.android.gms:play-services-location:21.3.0")
+    implementation("com.google.android.gms:play-services-location:21.4.0")
+    // play-services arrastra Fragment 1.1.0, con el que registerForActivityResult
+    // (permiso de ubicación) puede fallar; forzamos una versión actual (>= 1.3.0).
+    implementation("androidx.fragment:fragment:1.9.1")
 
     // Test
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.3.0")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

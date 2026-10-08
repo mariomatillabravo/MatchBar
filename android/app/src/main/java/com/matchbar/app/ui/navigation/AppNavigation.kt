@@ -1,5 +1,8 @@
 package com.matchbar.app.ui.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -97,6 +100,10 @@ fun AppNavigation(app: MatchBarApp) {
     }
 
     Scaffold(
+        // Edge-to-edge: este Scaffold solo reserva el hueco de la barra inferior.
+        // La barra de estado la gestiona el Scaffold/TopAppBar de cada pantalla;
+        // si también la aplicara este, saldría un margen doble arriba.
+        contentWindowInsets = WindowInsets(0),
         bottomBar = {
             when (session.role) {
                 Role.USER -> UserBottomBar(navController)
@@ -108,7 +115,9 @@ fun AppNavigation(app: MatchBarApp) {
         NavHost(
             navController = navController,
             startDestination = startDest,
-            modifier = Modifier.padding(padding)
+            // consumeWindowInsets: las pantallas no vuelven a sumar el hueco de la
+            // barra inferior. imePadding: el teclado no tapa los formularios.
+            modifier = Modifier.padding(padding).consumeWindowInsets(padding).imePadding()
         ) {
             // ----- USER -----
             composable(Routes.MAP_ALL) {
@@ -219,7 +228,7 @@ private fun AuthGraph(
     navController: androidx.navigation.NavHostController,
     factory: ViewModelProvider.Factory
 ) {
-    NavHost(navController = navController, startDestination = Routes.LOGIN) {
+    NavHost(navController = navController, startDestination = Routes.LOGIN, modifier = Modifier.imePadding()) {
         composable(Routes.LOGIN) {
             LoginScreen(
                 vmFactory = factory,

@@ -31,7 +31,10 @@ android/*.iml
 android/captures/
 *.apk
 *.aab
+# Claves de firma de Android: nunca al repositorio (con ellas se pueden firmar
+# versiones falsas de la app).
 *.keystore
+*.jks
 
 # Logs
 *.log

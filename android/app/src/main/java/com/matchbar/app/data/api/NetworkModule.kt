@@ -1,6 +1,6 @@
 package com.matchbar.app.data.api
 
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.matchbar.app.BuildConfig
 import com.matchbar.app.data.local.SessionStore
 import kotlinx.serialization.json.Json

@@ -113,22 +113,47 @@ Todos tienen contraseña: **`password123`**. Se crean únicamente con
 
 ### Requisitos
 
-- Android Studio Hedgehog (2023.1) o superior
-- JDK 17
-- Emulador con Android 8.0 (API 26) o superior
+- Android Studio reciente, con soporte para AGP 9.4 (Gradle 9.8, Kotlin 2.4)
+- JDK 17 o superior
+- Emulador o móvil con Android 8.0 (API 26) o superior. La app usa
+  `targetSdk 36` (Android 16), el mínimo que exige Google Play desde el 31/08/2026.
 
 ### Pasos
 
 1. Asegúrate de que el backend esté corriendo en tu máquina (puerto 8080).
 2. Abre la carpeta `android/` con Android Studio.
-3. **Importante**: la URL base de la API por defecto es `http://10.0.2.2:8080/`,
+3. **Importante**: en debug la URL de la API es `http://10.0.2.2:8080/`,
    que es la dirección de `localhost` del PC anfitrión vista desde el emulador.
-   - Si pruebas en un dispositivo físico, edita `app/build.gradle.kts` y cambia
-     `API_BASE_URL` por la IP de tu PC en la red local (p. ej. `http://192.168.1.50:8080/`).
-4. (Opcional, para mapas): pega tu API key de Google Maps en
-   `app/src/main/res/values/strings.xml`. Sin clave, la pantalla del mapa se
-   verá en gris pero el resto de la app funciona.
-5. Pulsa **Run**.
+   - Si pruebas en un dispositivo físico, cambia `API_BASE_URL` del bloque `debug`
+     en `app/build.gradle.kts` por la IP de tu PC (p. ej. `http://192.168.1.50:8080/`),
+     añádela a `app/src/debug/res/xml/network_security_config.xml` y pon
+     `API_BIND=0.0.0.0` en `.env`.
+4. Pulsa **Run**. Los mapas usan OpenStreetMap (osmdroid) y no necesitan API key.
+
+### Release firmada (para Google Play)
+
+1. Crea la clave de firma **una sola vez** y guárdala fuera del repositorio
+   (si se pierde, no podrás actualizar la app):
+   ```bash
+   keytool -genkeypair -v -keystore ~/matchbar-release.jks -alias matchbar \
+           -keyalg RSA -keysize 4096 -validity 10000
+   ```
+2. Añade a `~/.gradle/gradle.properties` (nunca al repo):
+   ```properties
+   matchbar.releaseApiUrl=https://api.tudominio.com/
+   matchbar.keystore.path=/ruta/a/matchbar-release.jks
+   matchbar.keystore.password=...
+   matchbar.key.alias=matchbar
+   matchbar.key.password=...
+   ```
+   (En CI se pueden usar las variables `MATCHBAR_KEYSTORE_PATH`,
+   `MATCHBAR_KEYSTORE_PASSWORD`, `MATCHBAR_KEY_ALIAS` y `MATCHBAR_KEY_PASSWORD`.)
+3. `./gradlew bundleRelease` genera el `.aab` firmado en
+   `app/build/outputs/bundle/release/`. Sin la clave configurada, el build
+   termina igual pero sin firmar (sirve para comprobar, no para publicar).
+
+La release activa R8 (código reducido y ofuscado) y no incluye la sesión en
+las copias de seguridad del móvil (`allowBackup="false"`).
 
 ### Flujo de uso típico
 

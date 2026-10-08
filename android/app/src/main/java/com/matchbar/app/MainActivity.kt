@@ -1,13 +1,17 @@
 package com.matchbar.app
 
 import android.Manifest
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -22,6 +26,9 @@ class MainActivity : ComponentActivity() {
     ) { /* sin acción específica; las pantallas que usan ubicación caen al fallback */ }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Dibujamos detrás de las barras del sistema (obligatorio con targetSdk 35+);
+        // cada pantalla deja sitio con sus insets (Scaffold/TopAppBar).
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         // Pedimos permisos de ubicación al iniciar (no bloqueante).
@@ -38,6 +45,13 @@ class MainActivity : ComponentActivity() {
                 ThemeMode.SYSTEM -> isSystemInDarkTheme()
                 ThemeMode.LIGHT -> false
                 ThemeMode.DARK -> true
+            }
+            // Los iconos de las barras del sistema siguen el tema de la app, que el
+            // usuario puede fijar en claro/oscuro aunque el sistema use el otro.
+            DisposableEffect(darkTheme) {
+                val style = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme }
+                enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+                onDispose {}
             }
             MatchBarTheme(darkTheme = darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize()) {
