@@ -64,10 +64,8 @@ fun AllBarsMapScreen(
                                     position = GeoPoint(bar.latitude, bar.longitude)
                                     title = bar.name
                                     snippet = bar.address
-                                    markerIcon?.let {
-                                        icon = it
-                                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                    }
+                                    icon = markerIcon
+                                    setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
                                     setOnMarkerClickListener { _, _ ->
                                         vm.selectBar(bar)
                                         true // consumimos el evento: no mostramos info-window nativa

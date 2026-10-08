@@ -21,7 +21,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Schedule
@@ -185,7 +185,7 @@ fun BarDetailScreen(
                             ) {
                                 Row(modifier = Modifier.padding(16.dp),
                                     verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(Icons.Filled.MenuBook, null,
+                                    Icon(Icons.AutoMirrored.Filled.MenuBook, null,
                                         tint = MaterialTheme.colorScheme.secondary,
                                         modifier = Modifier.size(26.dp))
                                     Spacer(Modifier.width(14.dp))

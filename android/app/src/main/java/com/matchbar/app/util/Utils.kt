@@ -24,7 +24,7 @@ fun absoluteUrl(path: String?): String? {
 
 fun formatKickoff(iso: String): String = runCatching {
     val instant = Instant.parse(iso)
-    val formatter = DateTimeFormatter.ofPattern("dd MMM, HH:mm", Locale("es", "ES"))
+    val formatter = DateTimeFormatter.ofPattern("dd MMM, HH:mm", Locale.forLanguageTag("es-ES"))
         .withZone(ZoneId.of("Europe/Madrid"))
     formatter.format(instant)
 }.getOrDefault(iso)

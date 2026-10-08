@@ -19,7 +19,9 @@ val keystorePath = secret("matchbar.keystore.path", "MATCHBAR_KEYSTORE_PATH")
 
 android {
     namespace = "com.matchbar.app"
-    compileSdk = 36
+    // compileSdk solo fija contra qué APIs se compila (Compose 1.12 y lifecycle
+    // 2.11 exigen 37); el comportamiento de Android lo decide targetSdk.
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.matchbar.app"
@@ -95,6 +97,7 @@ dependencies {
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.11.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.11.0")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0") // LocalLifecycleOwner
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.10.2")
