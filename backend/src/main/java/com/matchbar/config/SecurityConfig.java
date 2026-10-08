@@ -49,7 +49,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/public/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/bars/images/**").permitAll()
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                // Solo responde si Swagger está activado (perfil dev o SWAGGER_ENABLED); si no, 404.
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/admin.html", "/", "/favicon.ico", "/logo-letras.png").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated())

@@ -10,9 +10,8 @@ spring:
     # para lanzar el backend con Maven contra el Mongo del contenedor. Se busca
     # tanto si arrancas desde backend/ como desde la raíz.
     import: "optional:file:.env[.properties],optional:file:../.env[.properties]"
-  data:
-    mongodb:
-      uri: ${MONGODB_URI:mongodb://${MONGO_APP_USER:matchbar}:${MONGO_APP_PASSWORD}@localhost:27017/matchbar?authSource=matchbar}
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://${MONGO_APP_USER:matchbar}:${MONGO_APP_PASSWORD}@localhost:27017/matchbar?authSource=matchbar}
 
 matchbar:
   jwt:

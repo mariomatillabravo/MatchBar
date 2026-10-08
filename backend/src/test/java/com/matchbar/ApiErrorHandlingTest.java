@@ -19,8 +19,8 @@ import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.MediaType;
@@ -57,13 +57,13 @@ class ApiErrorHandlingTest {
     @Autowired MockMvc mvc;
     @Autowired JwtTokenProvider tokenProvider;
 
-    @MockBean UserRepository userRepository;
-    @MockBean MatchService matchService;
-    @MockBean BarService barService;
-    @MockBean ReviewService reviewService;
-    @MockBean LicenseDocService licenseDocService;
-    @MockBean ImageService imageService;
-    @MockBean AuthService authService;
+    @MockitoBean UserRepository userRepository;
+    @MockitoBean MatchService matchService;
+    @MockitoBean BarService barService;
+    @MockitoBean ReviewService reviewService;
+    @MockitoBean LicenseDocService licenseDocService;
+    @MockitoBean ImageService imageService;
+    @MockitoBean AuthService authService;
 
     private String userToken;
 
@@ -154,6 +154,13 @@ class ApiErrorHandlingTest {
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.message").value("Error interno del servidor"))
                 .andExpect(content().string(not(containsString("secreto"))));
+    }
+
+    @Test
+    void laEntradaDeSwaggerUiNoExigeSesion() throws Exception {
+        // En este test no se carga springdoc: un 404 (y no un 401) demuestra
+        // que la ruta documentada /swagger-ui.html es pública.
+        mvc.perform(get("/swagger-ui.html")).andExpect(status().isNotFound());
     }
 
     @Test

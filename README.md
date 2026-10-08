@@ -10,7 +10,7 @@ Proyecto de fin de ciclo DAM — IES Tetuán de las Victorias (curso 2025/2026).
 
 ## Stack
 
-- **Backend**: Spring Boot 3.3 + Spring Data JPA + Spring Security + JWT
+- **Backend**: Spring Boot 4.1 + Spring Data MongoDB + Spring Security 7 + JWT
 - **Base de datos**: H2 en memoria (perfil `dev`) / MySQL 8 (perfil `prod`)
 - **App móvil**: Kotlin + Jetpack Compose + Retrofit + DataStore + Maps Compose
 - **Panel admin**: SPA estática (HTML+CSS+JS) servida desde el backend

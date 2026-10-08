@@ -17,8 +17,8 @@ import com.matchbar.service.ReviewService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.mongodb.gridfs.GridFsResource;
 import org.springframework.http.HttpStatus;
@@ -48,13 +48,13 @@ class FileAccessTest {
     @Autowired MockMvc mvc;
     @Autowired JwtTokenProvider tokenProvider;
 
-    @MockBean UserRepository userRepository;
-    @MockBean UserAdminService userAdminService;
-    @MockBean BarService barService;
-    @MockBean ReviewService reviewService;
-    @MockBean ImageService imageService;
-    @MockBean MatchService matchService;
-    @MockBean IncidentService incidentService;
+    @MockitoBean UserRepository userRepository;
+    @MockitoBean UserAdminService userAdminService;
+    @MockitoBean BarService barService;
+    @MockitoBean ReviewService reviewService;
+    @MockitoBean ImageService imageService;
+    @MockitoBean MatchService matchService;
+    @MockitoBean IncidentService incidentService;
 
     private String userToken;
     private String adminToken;

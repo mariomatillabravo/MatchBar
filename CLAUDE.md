@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 MatchBar is a full-stack app for finding bars that broadcast football matches. It consists of:
-- **`/backend`** — Spring Boot 3.3 REST API (Java 21, Maven, MongoDB)
+- **`/backend`** — Spring Boot 4.1 REST API (Java 21, Maven, MongoDB, Jackson 3)
 - **`/android`** — Kotlin + Jetpack Compose Android client (Gradle KTS, minSdk 26)
 
 ## Build & Run Commands
@@ -68,6 +68,7 @@ Controller → Service → Repository → MongoDB
 - **Geospatial**: Bars have a `GeoJsonPoint` location field with a 2D sphere index. `BarService` uses `NearQuery` for proximity searches.
 - **Seeding**: `DataSeeder.java` (`@Profile("dev")` only) pre-populates MongoDB with test users, bars, matches, competitions, and teams on startup. Outside `dev`, `AdminBootstrap.java` creates the first ADMIN from `MATCHBAR_ADMIN_EMAIL`/`MATCHBAR_ADMIN_PASSWORD`.
 - **Errors**: `GlobalExceptionHandler` maps exceptions to 4xx with the shared `ErrorResponses` JSON body; `JsonSecurityErrorHandler` returns 401 (missing/expired token) vs 403 (wrong role). Throw `ApiException` for business errors.
+- **Spring Boot 4 conventions**: JSON is Jackson 3 (`tools.jackson.databind.*`; annotations stay in `com.fasterxml.jackson.annotation`). Tests use `@MockitoBean` (not `@MockBean`) and `org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest`. Mongo connection is `spring.mongodb.uri` (not `spring.data.mongodb.uri`). `ConfigurationPropertiesTest` fails if any key in `application*.yml` was retired by Spring — run it after every Spring Boot upgrade.
 
 Key files: `SecurityConfig.java`, `AuthService.java` (JWT generation/validation), `BarService.java` (geospatial logic), `application.yml` (MongoDB URI, JWT secret, port).
 

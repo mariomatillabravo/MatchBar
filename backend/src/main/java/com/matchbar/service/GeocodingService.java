@@ -46,10 +46,10 @@ public class GeocodingService {
      */
     public Coordinates geocode(String address) {
         if (address == null || address.isBlank()) {
-            throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, "La dirección no puede estar vacía");
+            throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT, "La dirección no puede estar vacía");
         }
 
-        UriComponentsBuilder uri = UriComponentsBuilder.fromHttpUrl(baseUrl)
+        UriComponentsBuilder uri = UriComponentsBuilder.fromUriString(baseUrl)
                 .queryParam("q", address.trim())
                 .queryParam("format", "jsonv2")
                 .queryParam("limit", 1)
@@ -72,7 +72,7 @@ public class GeocodingService {
             NominatimResult[] results = response.getBody();
             if (results == null || results.length == 0
                     || results[0].lat() == null || results[0].lon() == null) {
-                throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY,
+                throw new ApiException(HttpStatus.UNPROCESSABLE_CONTENT,
                         "No hemos podido localizar esa dirección. Revisa que la calle, el número y la ciudad sean correctos.");
             }
             return new Coordinates(

@@ -1,12 +1,17 @@
 spring:
+  # Conexión al servidor (Spring Boot 4: spring.mongodb.*, antes spring.data.mongodb.*).
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/matchbar}
   data:
     mongodb:
-      uri: ${MONGODB_URI:mongodb://localhost:27017/matchbar}
       # Necesario para que se creen los índices declarados con anotaciones
       # (en especial el 2dsphere de Bar.location, sin el cual $geoNear falla).
       auto-index-creation: true
-  jpa:
-    open-in-view: false
+  web:
+    error:
+      # Los mensajes de error de la API los genera GlobalExceptionHandler; aquí
+      # evitamos que la página /error de Spring exponga detalles internos.
+      include-message: never
   servlet:
     multipart:
       # Por defecto Spring limita la subida a 1 MB/archivo, lo que hace fallar
@@ -20,10 +25,6 @@ server:
   # Detrás del proxy HTTPS (Caddy) usa X-Forwarded-For/-Proto para conocer la
   # IP real del cliente (límite de peticiones) y que la petición es https.
   forward-headers-strategy: native
-  error:
-    # Los mensajes de error de la API los genera GlobalExceptionHandler; aquí
-    # evitamos que la página /error de Spring exponga detalles internos.
-    include-message: never
 
 # Los secretos llegan SIEMPRE por variables de entorno (ver .env.example en la
 # raíz). No tienen valor por defecto: si faltan, la API no arranca o la

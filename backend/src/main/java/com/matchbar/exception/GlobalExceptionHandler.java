@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
-        return ErrorResponses.of(HttpStatus.PAYLOAD_TOO_LARGE, "El fichero supera el tamaño máximo permitido");
+        return ErrorResponses.of(HttpStatus.CONTENT_TOO_LARGE, "El fichero supera el tamaño máximo permitido");
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
