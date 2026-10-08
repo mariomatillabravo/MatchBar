@@ -43,7 +43,9 @@ Open `/android` in Android Studio and run on emulator or device.
 
 - Debug builds use `http://10.0.2.2:8080/` (emulator → host localhost); cleartext is allowed only via `src/debug/res/xml/network_security_config.xml`.
 - For a physical device, change the `debug` `API_BASE_URL` in `app/build.gradle.kts` to your LAN IP, add it to the debug network security config, and set `API_BIND=0.0.0.0` in `.env`.
-- Release builds require `-Pmatchbar.releaseApiUrl=https://...`; `preReleaseBuild` fails otherwise.
+- Release builds require `-Pmatchbar.releaseApiUrl=https://...`; `preReleaseBuild` fails otherwise. Release = R8 minify + resource shrinking; signing comes from `matchbar.keystore.*`/`matchbar.key.*` Gradle properties or `MATCHBAR_KEYSTORE_*` env vars (unsigned if absent). Never commit `*.jks`/`*.keystore`.
+- Toolchain: AGP 9.4 with built-in Kotlin (do NOT apply `org.jetbrains.kotlin.android`; no `kotlinOptions` — jvmTarget follows `compileOptions`), Gradle 9.8, Kotlin 2.4, compileSdk/targetSdk 36 (Play minimum since 2026-08-31).
+- Edge-to-edge is mandatory at targetSdk 35+: `MainActivity` calls `enableEdgeToEdge()`; the outer Scaffold in `AppNavigation` uses `contentWindowInsets = WindowInsets(0)` and the NavHost consumes its padding + `imePadding()`. Screens without a Scaffold must add `systemBarsPadding()`.
 
 ## Architecture
 

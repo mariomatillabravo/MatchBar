@@ -31,7 +31,7 @@ jobs:
       - run: ./mvnw -B verify
 
   android:
-    name: Android (build debug)
+    name: Android (build debug y release)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,6 +47,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       # El runner ya trae el Android SDK (ANDROID_HOME).
       - run: ./gradlew --no-daemon assembleDebug testDebugUnitTest
+      # Release con R8 (sin firmar): detecta a tiempo reglas de ofuscación rotas
+      # o clases que faltan. La URL es ficticia; solo tiene que ser https.
+      - run: ./gradlew --no-daemon assembleRelease -Pmatchbar.releaseApiUrl=https://api.matchbar.invalid/
 
   secrets:
     name: Secretos (gitleaks)
