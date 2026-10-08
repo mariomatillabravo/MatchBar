@@ -122,6 +122,9 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.20")
     // Ubicación del dispositivo (FusedLocationProvider; no requiere API key de mapas)
     implementation("com.google.android.gms:play-services-location:21.4.0")
+    // play-services arrastra Fragment 1.1.0, con el que registerForActivityResult
+    // (permiso de ubicación) puede fallar; forzamos una versión actual (>= 1.3.0).
+    implementation("androidx.fragment:fragment:1.9.1")
 
     // Test
     testImplementation("junit:junit:4.13.2")
